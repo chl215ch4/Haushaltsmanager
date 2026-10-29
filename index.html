@@ -1,0 +1,3119 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Haushalts-Wirtschaftssystem</title>
+  <meta name="theme-color" content="#0f1117" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ═══ Tokens ═════════════════════════════════════════════════ */
+    :root {
+      --bg:#0f1117; --surf:#1a1d27; --surf2:#22263a; --surf3:#2c324b; --brd:#2e3248;
+      --acc:#5b6af5; --acc2:#7c89ff; --grn:#34d399; --yel:#fbbf24;
+      --red:#f87171; --pur:#a78bfa; --org:#fb923c; --sky:#38bdf8;
+      --tx:#e8eaf6; --tx2:#8b90a7;
+      --r:14px; --rs:8px; --sh:0 6px 28px rgba(0,0,0,.5);
+      --tr:.2s cubic-bezier(.4,0,.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--tx);overflow:hidden}
+    body{display:flex;flex-direction:column}
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--brd);border-radius:3px}
+
+    /* ═══ Buttons ════════════════════════════════════════════════ */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 15px;border-radius:var(--rs);font-family:inherit;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all var(--tr);white-space:nowrap;line-height:1}
+    .btn-primary{background:var(--acc);color:#fff}
+    .btn-primary:hover{background:var(--acc2);transform:translateY(-1px);box-shadow:0 6px 20px rgba(91,106,245,.4)}
+    .btn-secondary{background:var(--surf2);color:var(--tx);border:1px solid var(--brd)}
+    .btn-secondary:hover{background:var(--brd);transform:translateY(-1px)}
+    .btn-ghost{background:none;color:var(--tx2);border:1px solid transparent}
+    .btn-ghost:hover{background:var(--surf2);color:var(--tx)}
+    .btn-danger{background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+    .btn-danger:hover{background:rgba(248,113,113,.25)}
+    .btn-green{background:rgba(52,211,153,.15);color:var(--grn);border:1px solid rgba(52,211,153,.3)}
+    .btn-green:hover{background:rgba(52,211,153,.25)}
+    .btn-sm{padding:5px 10px;font-size:11px}
+    .btn-xs{padding:3px 7px;font-size:10px}
+
+    /* ═══ Top Bar ════════════════════════════════════════════════ */
+    #topbar{display:flex;align-items:center;gap:12px;padding:10px 18px;background:var(--surf);border-bottom:1px solid var(--brd);flex-shrink:0;z-index:100}
+    .logo{font-size:15px;font-weight:700;background:linear-gradient(135deg,var(--acc2),var(--grn));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.3px;display:flex;align-items:center;gap:6px}
+    .tab-group{display:flex;gap:3px;background:var(--bg);border:1px solid var(--brd);border-radius:var(--rs);padding:3px}
+    .tab-btn{padding:6px 13px;border-radius:5px;font-family:inherit;font-size:12px;font-weight:600;border:none;cursor:pointer;transition:all var(--tr);color:var(--tx2);background:none;display:flex;align-items:center;gap:5px}
+    .tab-btn.active{background:var(--surf2);color:var(--tx);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+    .tab-btn:hover:not(.active){color:var(--tx)}
+    .tb-spacer{flex:1}
+    .topbar-acts{display:flex;gap:7px;align-items:center}
+
+    /* Cloud Sync Status Indicator */
+    .sync-status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:var(--surf2);border:1px solid var(--brd);cursor:pointer;transition:all var(--tr)}
+    .sync-status-badge:hover{border-color:var(--acc)}
+    .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--tx2)}
+    .sync-dot.online{background:var(--grn);box-shadow:0 0 8px var(--grn)}
+    .sync-dot.syncing{background:var(--yel);box-shadow:0 0 8px var(--yel);animation:pulse 1s infinite}
+    .sync-dot.error{background:var(--red);box-shadow:0 0 8px var(--red)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    /* ═══ Content ════════════════════════════════════════════════ */
+    #content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+    .tab-pane{display:none;flex:1;overflow:hidden}
+    .tab-pane.active{display:flex;flex:1}
+
+    /* ═══ Panels & Headers ═══════════════════════════════════════ */
+    .panel-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:11px 16px;border-bottom:1px solid var(--brd);background:var(--surf);flex-shrink:0}
+    .panel-title{font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:6px}
+    .sec-body{flex:1;overflow-y:auto;padding:10px 14px}
+
+    /* ═══ HAUSHALT (Tab 1) ═══════════════════════════════════════ */
+    #haushalt-pane{flex-direction:row}
+    #cal-panel{width:60%;display:flex;flex-direction:column;border-right:1px solid var(--brd);overflow:hidden}
+    #gcal-setup{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center}
+    #gcal-setup .si{font-size:48px}
+    #gcal-setup h2{font-size:18px;font-weight:700}
+    #gcal-setup p{font-size:13px;color:var(--tx2);max-width:400px;line-height:1.5}
+    .setup-steps{background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r);padding:14px 18px;text-align:left;max-width:440px;width:100%}
+    .setup-steps ol{padding-left:18px}
+    .setup-steps li{font-size:12px;color:var(--tx2);margin-bottom:6px;line-height:1.4}
+    .setup-steps li strong{color:var(--tx)}
+    #gcal-url-inp{width:100%;max-width:440px;background:var(--bg);border:1px solid var(--brd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:13px;padding:9px 12px;outline:none}
+    #gcal-url-inp:focus{border-color:var(--acc)}
+    #gcal-wrap{flex:1;display:none;flex-direction:column;position:relative}
+    #gcal-wrap.vis{display:flex}
+    #gcal-frame{flex:1;border:none;width:100%;height:100%;filter:invert(.88) hue-rotate(180deg) brightness(.85) saturate(.9)}
+    .gcal-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:6px 12px;border-bottom:1px solid var(--brd);background:var(--surf);flex-shrink:0}
+
+    #right-panel{width:40%;display:flex;flex-direction:column;overflow:hidden}
+    .sec-col{flex:1;display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--brd)}
+    .sec-col:last-child{border-bottom:none}
+
+    /* Item cards */
+    .item-card{display:flex;align-items:center;gap:9px;padding:8px 10px;margin-bottom:6px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--rs);transition:all var(--tr)}
+    .item-card:hover{border-color:var(--acc);transform:translateX(2px)}
+    .item-emoji{font-size:19px;width:26px;text-align:center;flex-shrink:0}
+    .item-info{flex:1;min-width:0}
+    .item-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .item-meta{font-size:10px;color:var(--tx2);margin-top:1px}
+    .item-qty{font-size:11px;font-weight:700;color:var(--tx2);flex-shrink:0}
+    .badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700;flex-shrink:0}
+    .b-red{background:rgba(248,113,113,.18);color:var(--red)}
+    .b-yel{background:rgba(251,191,36,.18);color:var(--yel)}
+    .b-grn{background:rgba(52,211,153,.13);color:var(--grn)}
+    .b-sky{background:rgba(56,189,248,.13);color:var(--sky)}
+    .b-pur{background:rgba(167,139,250,.15);color:var(--pur)}
+
+    /* Shopping */
+    .shop-item{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:5px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--rs);transition:all var(--tr)}
+    .shop-item.done{opacity:.45}
+    .shop-item.done .shop-name{text-decoration:line-through}
+    .shop-chk{width:18px;height:18px;border:2px solid var(--brd);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all var(--tr)}
+    .shop-chk:hover{border-color:var(--grn)}
+    .shop-chk.done{background:var(--grn);border-color:var(--grn)}
+    .shop-chk.done::after{content:'✓';color:#000;font-size:11px;font-weight:800}
+    .shop-emoji{font-size:16px;flex-shrink:0}
+    .shop-name{flex:1;font-size:13px;font-weight:500}
+    .shop-qty{font-size:11px;color:var(--tx2);flex-shrink:0}
+    .icon-btn{background:none;border:none;cursor:pointer;font-size:13px;color:var(--tx2);padding:2px 4px;border-radius:4px;transition:color var(--tr)}
+    .icon-btn:hover{color:var(--red)}
+
+    /* Empty state */
+    .empty-st{text-align:center;padding:24px 12px;color:var(--tx2);font-size:12px}
+    .empty-ic{font-size:26px;margin-bottom:7px}
+
+    /* Date mode toggle */
+    .mode-toggle{display:flex;background:var(--bg);border:1px solid var(--brd);border-radius:var(--rs);padding:3px;gap:3px;margin-bottom:12px}
+    .mode-btn{flex:1;padding:6px;border-radius:5px;border:none;background:none;font-family:inherit;font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;transition:all var(--tr)}
+    .mode-btn.active{background:var(--surf2);color:var(--tx)}
+    .calc-mhd{font-size:11px;color:var(--grn);margin-top:5px;font-weight:600}
+
+    /* ═══ AUFGABEN (Tab 2) ═══════════════════════════════════════ */
+    #aufgaben-pane{flex-direction:row;overflow:hidden}
+    .aufg-left{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--brd);overflow:hidden;min-width:0}
+    .aufg-top{flex:1;display:flex;overflow:hidden;border-bottom:1px solid var(--brd)}
+    .aufg-done{height:180px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+    .aufg-right{width:300px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+    .aufg-col{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--brd)}
+    .aufg-col:last-child{border-right:none}
+
+    /* Task cards */
+    .task-card{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;margin-bottom:6px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--rs);cursor:pointer;transition:all var(--tr)}
+    .task-card:hover:not(.disabled){border-color:var(--acc);background:rgba(91,106,245,.07)}
+    .task-card.overdue{border-color:rgba(248,113,113,.4)}
+    .task-card.disabled{opacity:.4;cursor:default;pointer-events:none}
+    .task-card.today-done{border-color:rgba(52,211,153,.3);opacity:.55}
+    .t-emoji{font-size:20px;flex-shrink:0;line-height:1.2}
+    .t-info{flex:1;min-width:0}
+    .t-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .t-sub{font-size:10px;color:var(--tx2);margin-top:2px}
+    .t-pts{font-size:11px;font-weight:700;color:var(--yel);flex-shrink:0}
+
+    /* Done list */
+    .done-entry{display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:5px;background:var(--surf2);border:1px solid rgba(52,211,153,.2);border-radius:var(--rs)}
+    .done-emoji{font-size:16px;flex-shrink:0}
+    .done-info{flex:1;min-width:0}
+    .done-name{font-size:12px;font-weight:600}
+    .done-meta{font-size:10px;color:var(--tx2)}
+
+    /* Points board */
+    .pts-board{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+    .pts-person{display:flex;align-items:center;gap:11px;padding:9px 12px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--rs);cursor:pointer;transition:all var(--tr)}
+    .pts-person:hover{border-color:var(--acc);background:rgba(91,106,245,.08);transform:translateX(2px)}
+    .pts-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;background:var(--surf3);flex-shrink:0}
+    .pts-name{flex:1;font-size:13px;font-weight:600}
+    .pts-score{font-size:20px;font-weight:800;color:var(--acc2)}
+
+    /* History table */
+    .hist-tbl{width:100%;border-collapse:collapse;font-size:11px}
+    .hist-tbl th{padding:5px 8px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);border-bottom:1px solid var(--brd)}
+    .hist-tbl td{padding:6px 8px;border-bottom:1px solid rgba(46,50,72,.5)}
+    .hist-tbl tr:last-child td{border-bottom:none}
+    .hist-tbl td.win{font-weight:700;color:var(--yel)}
+
+    /* Quick task tiles */
+    .kacheln-grid{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px}
+    .kachel{width:44px;height:44px;border-radius:var(--rs);background:var(--surf2);border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:all var(--tr);position:relative}
+    .kachel:hover{border-color:var(--acc);transform:scale(1.08);box-shadow:0 4px 12px rgba(91,106,245,.3)}
+    .kachel:active{transform:scale(.96)}
+    .kachel-del{position:absolute;top:-4px;right:-4px;width:15px;height:15px;background:var(--red);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:9px;color:#fff;cursor:pointer;font-weight:700}
+    .kachel-edit-mode .kachel-del{display:flex}
+    .kachel-add{width:44px;height:44px;border-radius:var(--rs);background:none;border:1.5px dashed var(--brd);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--tx2);cursor:pointer;transition:all var(--tr)}
+    .kachel-add:hover{border-color:var(--acc);color:var(--acc)}
+
+    /* ═══ PRODUKTE (Tab 3) ═══════════════════════════════════════ */
+    #produkte-pane{flex-direction:column;overflow:hidden}
+    .prod-subnav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px;background:var(--surf);border-bottom:1px solid var(--brd);flex-shrink:0}
+    .prod-grid{flex:1;display:flex;overflow:hidden}
+    .prod-left{width:55%;border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden}
+    .prod-right{width:45%;display:flex;flex-direction:column;overflow:hidden}
+
+    /* Storage locations accordion */
+    .loc-group{border-bottom:1px solid var(--brd)}
+    .loc-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surf2);cursor:pointer;user-select:none;font-weight:600;font-size:13px;transition:background var(--tr)}
+    .loc-hdr:hover{background:var(--surf3)}
+    .loc-count{font-size:11px;padding:2px 8px;border-radius:12px;background:var(--bg);color:var(--tx2)}
+    .loc-items{padding:8px 12px;display:flex;flex-direction:column;gap:5px;background:var(--bg)}
+
+    /* Catalog list items */
+    .catalog-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--rs);margin-bottom:6px;transition:all var(--tr)}
+    .catalog-item:hover{border-color:var(--acc)}
+    .cat-emoji{font-size:24px;flex-shrink:0}
+    .cat-info{flex:1;min-width:0}
+    .cat-name{font-size:13px;font-weight:700}
+    .cat-sub{font-size:11px;color:var(--tx2);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+
+    /* ═══ PERSONEN (Tab 4) ═══════════════════════════════════════ */
+    #personen-pane{flex-direction:column;overflow-y:auto;padding:18px 24px;gap:20px}
+    .person-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+    .pcard{background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--sh);position:relative;transition:all var(--tr)}
+    .pcard:hover{border-color:var(--acc);transform:translateY(-2px)}
+    .pcard-top{display:flex;align-items:center;gap:12px}
+    .pcard-av{width:48px;height:48px;border-radius:50%;background:var(--surf2);border:2px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+    .pcard-info{flex:1;min-width:0}
+    .pcard-name{font-size:16px;font-weight:700}
+    .pcard-role{font-size:11px;color:var(--tx2)}
+    .pcard-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--bg);padding:10px;border-radius:var(--rs);border:1px solid var(--brd)}
+    .stat-box{text-align:center}
+    .stat-val{font-size:18px;font-weight:800;color:var(--acc2)}
+    .stat-lbl{font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase}
+    .pcard-acts{display:flex;gap:6px}
+
+    /* Overall stats */
+    .stats-overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+    .stat-card{background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px}
+    .stat-icon{font-size:28px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--surf2);border-radius:var(--rs)}
+    .stat-txt-val{font-size:20px;font-weight:800}
+    .stat-txt-lbl{font-size:11px;color:var(--tx2);font-weight:600}
+
+    /* ═══ Modals ═════════════════════════════════════════════════ */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.68);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity var(--tr)}
+    .overlay.open{opacity:1;pointer-events:all}
+    .modal{background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:24px;width:500px;max-width:calc(100vw - 32px);box-shadow:var(--sh);max-height:90vh;overflow-y:auto;transform:translateY(16px) scale(.97);transition:transform var(--tr)}
+    .overlay.open .modal{transform:none}
+    .modal-title{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+    .form-grp{margin-bottom:13px}
+    label{display:block;font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+    input[type=text],input[type=date],input[type=number],select,textarea{width:100%;background:var(--bg);border:1px solid var(--brd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:13px;padding:9px 12px;outline:none;transition:border-color var(--tr)}
+    input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+    select option{background:var(--surf)}
+    textarea{resize:vertical;min-height:55px}
+    .modal-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+    .form-row{display:flex;gap:10px}
+    .form-row .form-grp{flex:1}
+
+    /* Emoji picker */
+    .epick{display:flex;flex-wrap:wrap;gap:4px;background:var(--bg);border:1px solid var(--brd);border-radius:var(--rs);padding:8px;max-height:120px;overflow-y:auto}
+    .ep{font-size:18px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:5px;border:2px solid transparent;transition:all var(--tr)}
+    .ep:hover{background:var(--surf2)}
+    .ep.sel{border-color:var(--acc);background:rgba(91,106,245,.15)}
+
+    /* Erfassen quick-tiles – kachel style */
+    .erfassen-kachel-wrap{margin-bottom:12px}
+    .erfassen-kachel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .erfassen-kachel-header label{margin:0;font-size:12px;font-weight:600;color:var(--tx2)}
+    .erfassen-kachel-header-btns{display:flex;gap:6px}
+    .erfassen-tiles{display:flex;flex-wrap:wrap;gap:8px;padding:8px;background:var(--bg);border:1px solid var(--brd);border-radius:var(--rs);min-height:64px;max-height:148px;overflow-y:auto}
+    .etile{width:56px;height:56px;border-radius:var(--rs);background:var(--surf2);border:1px solid var(--brd);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:all var(--tr);position:relative;flex-shrink:0}
+    .etile:hover{border-color:var(--acc);transform:scale(1.08);box-shadow:0 4px 12px rgba(91,106,245,.3)}
+    .etile:active{transform:scale(.96)}
+    .etile-em{font-size:22px;line-height:1}
+    .etile-nm{font-size:9px;color:var(--tx2);text-align:center;max-width:52px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 2px}
+    .etile-del{position:absolute;top:-4px;right:-4px;width:15px;height:15px;background:var(--red);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:9px;color:#fff;cursor:pointer;font-weight:700}
+    .etile-edit-mode .etile-del{display:flex}
+    .etile-add{width:56px;height:56px;border-radius:var(--rs);background:none;border:1.5px dashed var(--brd);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--tx2);cursor:pointer;transition:all var(--tr);flex-shrink:0}
+    .etile-add:hover{border-color:var(--acc);color:var(--acc)}
+
+    /* Autocomplete dropdown list */
+    .search-results-list{display:none;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--brd);border-radius:var(--rs);padding:6px;margin-top:5px}
+    .search-results-list.vis{display:flex}
+    .search-res-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--rs);cursor:pointer;font-size:13px;transition:background var(--tr)}
+    .search-res-item:hover{background:var(--surf2);color:var(--acc2)}
+
+    /* Multi person selector */
+    .person-multi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:10px 0}
+    .pm-btn{display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg);border:2px solid var(--brd);border-radius:var(--rs);cursor:pointer;transition:all var(--tr);font-family:inherit;color:var(--tx)}
+    .pm-btn:hover{border-color:var(--acc);background:rgba(91,106,245,.06)}
+    .pm-btn.sel{border-color:var(--acc);background:rgba(91,106,245,.16);box-shadow:0 0 10px rgba(91,106,245,.3)}
+    .pm-av{font-size:22px}
+    .pm-name{font-size:12px;font-weight:700}
+
+    /* Entnehmen Batches List */
+    .batch-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--rs);margin-bottom:6px;transition:all var(--tr)}
+    .batch-item:hover{border-color:var(--acc)}
+    .batch-item.earliest{border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.04)}
+
+    /* Toast */
+    #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surf);border:1px solid var(--brd);border-radius:var(--rs);padding:10px 18px;font-size:13px;font-weight:600;box-shadow:var(--sh);z-index:9999;transition:transform .35s cubic-bezier(.4,0,.2,1);white-space:nowrap;pointer-events:none}
+    #toast.show{transform:translateX(-50%) translateY(0)}
+    #toast.ok{border-color:var(--grn);color:var(--grn)}
+    #toast.warn{border-color:var(--yel);color:var(--yel)}
+    #toast.err{border-color:var(--red);color:var(--red)}
+  </style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══════════════════════════════════════════════ -->
+<div id="topbar">
+  <div class="logo">🏠 <span>Haushaltsmanager</span></div>
+
+  <div class="tab-group">
+    <button class="tab-btn active" data-tab="haushalt" onclick="switchTab('haushalt')">🏠 Haushalt</button>
+    <button class="tab-btn"        data-tab="aufgaben"  onclick="switchTab('aufgaben')">✅ Aufgaben</button>
+    <button class="tab-btn"        data-tab="produkte"  onclick="switchTab('produkte')">📦 Produkte</button>
+    <button class="tab-btn"        data-tab="personen"  onclick="switchTab('personen')">👥 Personen</button>
+  </div>
+
+  <!-- Live Sync Badge -->
+  <div class="sync-status-badge" id="cloud-sync-status-btn" onclick="openCloudSyncModal()" title="Klicke für Google Sheets Sync Einstellungen">
+    <span class="sync-dot" id="sync-dot-icon"></span>
+    <span id="sync-status-text">☁️ Sync: Offline</span>
+  </div>
+
+  <!-- Mode Switcher -->
+  <button class="btn btn-sm btn-secondary" onclick="switchToMobile()" title="In den Smartphone / Handy-Modus wechseln" style="border-color:var(--acc);color:var(--acc2);margin-left:4px">
+    📱 Handy-Modus
+  </button>
+
+  <div class="tb-spacer"></div>
+
+  <!-- Dynamic Actions -->
+  <div class="topbar-acts" id="acts-haushalt">
+    <button class="btn btn-primary"   onclick="openErfassen()">＋ Erfassen</button>
+    <button class="btn btn-secondary" onclick="openEntnehmen()">↑ Entnehmen</button>
+  </div>
+  <div class="topbar-acts" id="acts-aufgaben" style="display:none">
+    <button class="btn btn-primary"   onclick="openNewTask('recurring')">＋ Wiederk. Aufgabe</button>
+    <button class="btn btn-secondary" onclick="openNewTask('once')">＋ Einmal-Aufgabe</button>
+  </div>
+  <div class="topbar-acts" id="acts-produkte" style="display:none">
+    <button class="btn btn-sm btn-secondary" onclick="exportDatabase()">💾 Sichern</button>
+    <button class="btn btn-sm btn-secondary" onclick="triggerImportDatabase()">📂 Laden</button>
+    <button class="btn btn-sm btn-ghost" onclick="openCloudSyncModal()">☁️ Google Sheets</button>
+  </div>
+  <div class="topbar-acts" id="acts-personen" style="display:none">
+    <button class="btn btn-primary" onclick="openNewPersonModal()">＋ Person hinzufügen</button>
+  </div>
+</div>
+
+<!-- ═══ CONTENT ════════════════════════════════════════════════ -->
+<div id="content">
+
+  <!-- ── 1. HAUSHALT TAB ──────────────────────────────────── -->
+  <div class="tab-pane active" id="haushalt-pane">
+    <div id="cal-panel">
+      <div class="panel-hdr">
+        <span class="panel-title">📅 Google Kalender</span>
+        <button class="btn btn-xs btn-ghost" onclick="openCalSettings()">⚙ Verbinden</button>
+      </div>
+      <div id="gcal-setup">
+        <div class="si">📅</div>
+        <h2>Google Kalender verbinden</h2>
+        <p>Zeige Termine und Aufgaben direkt in der App. Kein API-Key nötig.</p>
+        <div class="setup-steps"><ol>
+          <li>Google Kalender öffnen → <strong>Einstellungen ⚙</strong></li>
+          <li>Links deinen Kalender wählen → <strong>„Diesen Kalender einbetten"</strong></li>
+          <li>Den iframe-Code oder die src-URL hier einfügen</li>
+        </ol></div>
+        <input id="gcal-url-inp" type="text" placeholder='iframe-Code oder src-URL einfügen…' />
+        <button class="btn btn-primary" onclick="saveCalUrl()">Kalender verbinden</button>
+      </div>
+      <div id="gcal-wrap">
+        <div class="gcal-bar">
+          <span style="font-size:11px;color:var(--tx2)">Google Kalender (eingebettet)</span>
+          <button class="btn btn-xs btn-ghost" onclick="openCalSettings()">✎ URL ändern</button>
+        </div>
+        <iframe id="gcal-frame" allowfullscreen></iframe>
+      </div>
+    </div>
+
+    <div id="right-panel">
+      <!-- Expiry -->
+      <div class="sec-col">
+        <div class="panel-hdr">
+          <span class="panel-title">⏳ Demnächst ablaufend</span>
+          <span id="expiry-count" style="font-size:11px;color:var(--tx2)"></span>
+        </div>
+        <div class="sec-body" id="expiry-list"></div>
+      </div>
+      <!-- Shopping -->
+      <div class="sec-col">
+        <div class="panel-hdr">
+          <span class="panel-title">🛒 Einkaufsliste</span>
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-xs btn-primary" onclick="openAddShoppingModal()">＋ Artikel</button>
+            <button class="btn btn-xs btn-ghost" onclick="clearDoneShop()">✓ Entfernen</button>
+          </div>
+        </div>
+        <div class="sec-body" id="shopping-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2. AUFGABEN TAB ──────────────────────────────────── -->
+  <div class="tab-pane" id="aufgaben-pane">
+    <div class="aufg-left">
+      <div class="aufg-top">
+        <!-- Recurring -->
+        <div class="aufg-col">
+          <div class="panel-hdr">
+            <span class="panel-title">🔁 Wiederkehrend</span>
+            <span id="rec-count" style="font-size:11px;color:var(--tx2)"></span>
+          </div>
+          <div class="sec-body" id="recurring-list"></div>
+        </div>
+        <!-- Once -->
+        <div class="aufg-col">
+          <div class="panel-hdr">
+            <span class="panel-title">📌 Einmal-Aufgaben</span>
+            <span id="once-count" style="font-size:11px;color:var(--tx2)"></span>
+          </div>
+          <div class="sec-body" id="once-list"></div>
+        </div>
+      </div>
+      <!-- Done Today -->
+      <div class="aufg-done">
+        <div class="panel-hdr">
+          <span class="panel-title">✅ Heute erledigt</span>
+          <span id="done-today-count" style="font-size:11px;color:var(--tx2)"></span>
+        </div>
+        <div class="sec-body" id="done-today-list"></div>
+      </div>
+    </div>
+
+    <div class="aufg-right">
+      <!-- Quick tiles -->
+      <div style="border-bottom:1px solid var(--brd);flex-shrink:0">
+        <div class="panel-hdr">
+          <span class="panel-title">🚀 Schnellaufgaben</span>
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-xs btn-ghost" id="kachel-edit-btn" onclick="toggleKachelEdit()">✎ Bearbeiten</button>
+            <button class="btn btn-xs btn-ghost" onclick="openNewKachel()">＋</button>
+          </div>
+        </div>
+        <div class="kacheln-grid" id="kacheln-grid"></div>
+      </div>
+      <!-- Points board -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--brd)">
+        <div class="panel-hdr">
+          <span class="panel-title">🏆 Punktestand</span>
+          <span id="pts-month-lbl" style="font-size:11px;color:var(--tx2)"></span>
+        </div>
+        <div class="pts-board" id="pts-board"></div>
+      </div>
+      <!-- Month history -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div class="panel-hdr">
+          <span class="panel-title">📊 Archiv</span>
+        </div>
+        <div class="sec-body" id="month-history"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3. PRODUKTE TAB ──────────────────────────────────── -->
+  <div class="tab-pane" id="produkte-pane">
+    <div class="prod-subnav">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:700;font-size:13px">Datenbank:</span>
+        <button class="btn btn-sm btn-danger" onclick="confirmResetDatabase()">✨ Neue leere DB</button>
+        <button class="btn btn-sm btn-secondary" onclick="triggerImportDatabase()">📂 Vorhandene DB laden</button>
+        <button class="btn btn-sm btn-secondary" onclick="exportDatabase()">💾 DB exportieren (JSON)</button>
+        <button class="btn btn-sm btn-primary" onclick="openCloudSyncModal()">☁️ Google Sheets Sync</button>
+      </div>
+      <input type="file" id="db-file-input" style="display:none" accept=".json" onchange="handleImportDatabase(event)" />
+    </div>
+
+    <div class="prod-grid">
+      <!-- Left: Gelagert nach Ort -->
+      <div class="prod-left">
+        <div class="panel-hdr">
+          <span class="panel-title">🧊 Gelagert nach Lagerort</span>
+          <span id="stock-total-count" style="font-size:11px;color:var(--tx2)"></span>
+        </div>
+        <div class="sec-body" id="storage-locations-list" style="padding:0"></div>
+      </div>
+
+      <!-- Right: Angelegte Produkte (Katalog) -->
+      <div class="prod-right">
+        <div class="panel-hdr">
+          <span class="panel-title">📚 Angelegte Produkte (Katalog)</span>
+          <button class="btn btn-xs btn-primary" onclick="openCreateCatalogProductModal()">＋ Neues Produkt</button>
+        </div>
+        <div style="padding:8px 12px;background:var(--surf);border-bottom:1px solid var(--brd)">
+          <input type="text" id="catalog-search" placeholder="🔍 Im Produkt-Katalog suchen…" oninput="renderCatalogList()" />
+        </div>
+        <div class="sec-body" id="catalog-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. PERSONEN TAB ──────────────────────────────────── -->
+  <div class="tab-pane" id="personen-pane">
+    <!-- Stats Overview -->
+    <div class="stats-overview">
+      <div class="stat-card">
+        <div class="stat-icon">🏆</div>
+        <div>
+          <div class="stat-txt-val" id="stat-all-pts">0</div>
+          <div class="stat-txt-lbl">Punkte diesen Monat</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div>
+          <div class="stat-txt-val" id="stat-all-tasks">0</div>
+          <div class="stat-txt-lbl">Erledigte Aufgaben</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div>
+          <div class="stat-txt-val" id="stat-all-members">0</div>
+          <div class="stat-txt-lbl">Aktive Haushaltsmitglieder</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="font-size:16px;font-weight:700">Mitglieder & Punktekonten</h3>
+        <button class="btn btn-sm btn-primary" onclick="openNewPersonModal()">＋ Person hinzufügen</button>
+      </div>
+      <div class="person-cards-grid" id="person-cards-grid"></div>
+    </div>
+  </div>
+
+</div><!-- #content -->
+
+<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+
+<!-- 1. Barcode Scan / Name Search / Quick Tiles (Erfassen Step 1) -->
+<div class="overlay" id="m-scan">
+  <div class="modal">
+    <div class="modal-title">📷 Produkt erfassen</div>
+
+    <!-- Quick Tiles -->
+    <div class="erfassen-kachel-wrap">
+      <div class="erfassen-kachel-header">
+        <label>⚡ Schnell-Erfassung</label>
+        <div class="erfassen-kachel-header-btns">
+          <button class="btn btn-xs btn-ghost" id="etile-edit-btn" onclick="toggleEtileEdit()">✏️ Bearbeiten</button>
+          <button class="btn btn-xs btn-ghost" onclick="openNewEtile()">+</button>
+        </div>
+      </div>
+      <div class="erfassen-tiles" id="erfassen-quick-tiles"></div>
+    </div>
+
+    <!-- Name search with auto-complete -->
+    <div class="form-grp">
+      <label>🔍 Vorhandenes Produkt nach Name suchen</label>
+      <input type="text" id="scan-name-search" placeholder="Tippe z.B. Milch, Eier, Brot…" oninput="handleScanNameSearch(this.value)" autocomplete="off" />
+      <div class="search-results-list" id="scan-search-results"></div>
+    </div>
+
+    <div style="text-align:center;font-size:11px;color:var(--tx2);margin:10px 0">— ODER MIT STRICHCODE —</div>
+
+    <!-- Barcode input -->
+    <div class="form-grp">
+      <label>Barcode scannen oder eingeben</label>
+      <input type="text" id="scan-input" placeholder="Scanne oder tippe den Code…" autocomplete="off" />
+      <div style="font-size:11px;color:var(--tx2);margin-top:4px">💡 Handscanner automatisch erkannt — Eingabe mit Enter bestätigen</div>
+      <div style="background:var(--bg);border:1px solid var(--acc);border-radius:var(--rs);padding:9px;font-family:monospace;font-size:15px;text-align:center;color:var(--acc2);margin-top:6px" id="scan-display">—</div>
+    </div>
+
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-scan')">Abbrechen</button>
+      <button class="btn btn-primary"   onclick="processScan()">Weiter →</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. New Product (Unknown Barcode) -->
+<div class="overlay" id="m-new-prod">
+  <div class="modal">
+    <div class="modal-title">🆕 Neues Produkt anlegen</div>
+    <input type="hidden" id="np-barcode" />
+    <div class="form-grp"><label>Emoji</label><div class="epick" id="np-emoji-picker"></div></div>
+    <div class="form-grp"><label>Name</label><input type="text" id="np-name" placeholder="z.B. Bio-Vollmilch" /></div>
+    <div class="form-grp"><label>Standard-Lagerort</label>
+      <select id="np-loc">
+        <option value="Kühlschrank">🧊 Kühlschrank</option>
+        <option value="Gefrierschrank">🥶 Gefrierschrank</option>
+        <option value="Arbeitsplatte">🍳 Arbeitsplatte</option>
+        <option value="Kleine Kammer">📦 Kleine Kammer</option>
+        <option value="Große Kammer">🏚️ Große Kammer</option>
+        <option value="Süßschrank">🍬 Süßschrank</option>
+      </select></div>
+    <div class="form-grp"><label>Stückzahl</label><input type="number" id="np-qty" min="1" value="1" /></div>
+    <!-- Date mode -->
+    <div class="form-grp">
+      <label>Haltbarkeitsinformation</label>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="np-mode-mhd"  onclick="setDateMode('np','mhd')">MHD eingeben</button>
+        <button class="mode-btn"        id="np-mode-kauf" onclick="setDateMode('np','kauf')">Kaufdatum + Haltbarkeit</button>
+      </div>
+    </div>
+    <div id="np-mhd-grp" class="form-grp"><label>MHD</label><input type="date" id="np-mhd" /></div>
+    <div id="np-kauf-grp" style="display:none">
+      <div class="form-row">
+        <div class="form-grp"><label>Kaufdatum</label><input type="date" id="np-kaufdate" onchange="updateCalcMhd('np')" /></div>
+        <div class="form-grp"><label>Typische Haltbarkeit</label>
+          <select id="np-shelf" onchange="updateCalcMhd('np')">
+            <option value="1">1 Tag</option><option value="2">2 Tage</option><option value="3">3 Tage</option><option value="5">5 Tage</option>
+            <option value="7" selected>7 Tage (1 Woche)</option><option value="10">10 Tage</option><option value="14">14 Tage (2 Wochen)</option>
+            <option value="21">21 Tage (3 Wochen)</option><option value="30">30 Tage (1 Monat)</option><option value="60">60 Tage (2 Monate)</option>
+            <option value="90">90 Tage (3 Monate)</option><option value="180">180 Tage (6 Monate)</option><option value="365">365 Tage (1 Jahr)</option>
+          </select></div>
+      </div>
+      <div class="calc-mhd" id="np-calc-mhd"></div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-new-prod')">Abbrechen</button>
+      <button class="btn btn-primary"   onclick="saveNewProduct()">Im Bestand speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Existing Product Capture Batch -->
+<div class="overlay" id="m-exist-prod">
+  <div class="modal">
+    <div class="modal-title" id="ep-title">Produkt erfassen</div>
+    <input type="hidden" id="ep-barcode" />
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px 12px;background:var(--bg);border-radius:var(--rs);border:1px solid var(--brd)">
+      <span id="ep-emoji" style="font-size:32px"></span>
+      <div>
+        <div id="ep-name" style="font-size:15px;font-weight:700"></div>
+        <div id="ep-loc"  style="font-size:11px;color:var(--tx2);margin-top:2px"></div>
+      </div>
+    </div>
+    <div class="form-grp"><label>Lagerort für diese Charge</label>
+      <select id="ep-charge-loc">
+        <option value="Kühlschrank">🧊 Kühlschrank</option>
+        <option value="Gefrierschrank">🥶 Gefrierschrank</option>
+        <option value="Arbeitsplatte">🍳 Arbeitsplatte</option>
+        <option value="Kleine Kammer">📦 Kleine Kammer</option>
+        <option value="Große Kammer">🏚️ Große Kammer</option>
+        <option value="Süßschrank">🍬 Süßschrank</option>
+      </select>
+    </div>
+    <div class="form-grp"><label>Stückzahl</label><input type="number" id="ep-qty" min="1" value="1" /></div>
+    <div class="form-grp">
+      <label>Haltbarkeitsinformation</label>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="ep-mode-mhd"  onclick="setDateMode('ep','mhd')">MHD eingeben</button>
+        <button class="mode-btn"        id="ep-mode-kauf" onclick="setDateMode('ep','kauf')">Kaufdatum + Haltbarkeit</button>
+      </div>
+    </div>
+    <div id="ep-mhd-grp" class="form-grp"><label>MHD</label><input type="date" id="ep-mhd" /></div>
+    <div id="ep-kauf-grp" style="display:none">
+      <div class="form-row">
+        <div class="form-grp"><label>Kaufdatum</label><input type="date" id="ep-kaufdate" onchange="updateCalcMhd('ep')" /></div>
+        <div class="form-grp"><label>Typische Haltbarkeit</label>
+          <select id="ep-shelf" onchange="updateCalcMhd('ep')">
+            <option value="1">1 Tag</option><option value="2">2 Tage</option><option value="3">3 Tage</option><option value="5">5 Tage</option>
+            <option value="7">7 Tage (1 Woche)</option><option value="10">10 Tage</option><option value="14" selected>14 Tage (2 Wochen)</option>
+            <option value="21">21 Tage (3 Wochen)</option><option value="30">30 Tage (1 Monat)</option><option value="60">60 Tage (2 Monate)</option>
+            <option value="90">90 Tage (3 Monate)</option><option value="180">180 Tage (6 Monate)</option><option value="365">365 Tage (1 Jahr)</option>
+          </select></div>
+      </div>
+      <div class="calc-mhd" id="ep-calc-mhd"></div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-exist-prod')">Abbrechen</button>
+      <button class="btn btn-primary"   onclick="saveExistProd()">Als neue Charge anlegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Entnehmen (Batches selectable) -->
+<div class="overlay" id="m-entnehmen">
+  <div class="modal" style="width:520px">
+    <div class="modal-title">↑ Produkt entnehmen</div>
+    <div class="form-grp">
+      <label>Suche nach Name, Lagerort oder Barcode</label>
+      <input type="text" id="ent-search" placeholder="z.B. Milch, Kühlschrank, Arbeitsplatte…" oninput="filterEnt()" autocomplete="off" />
+    </div>
+    <div style="font-size:11px;color:var(--tx2);margin-bottom:8px">Wähle die gewünschte Charge / das passende MHD aus:</div>
+    <div class="sec-body" id="ent-list" style="max-height:360px;padding:0"></div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-entnehmen')">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Add Manual Shopping Item -->
+<div class="overlay" id="m-add-shop">
+  <div class="modal">
+    <div class="modal-title">🛒 Artikel zur Einkaufsliste hinzufügen</div>
+    <div class="form-grp"><label>Emoji</label><div class="epick" id="shop-epick"></div></div>
+    <div class="form-grp"><label>Name</label><input type="text" id="shop-name" placeholder="z.B. Äpfel, Haferflocken…" /></div>
+    <div class="form-grp"><label>Menge / Stückzahl</label><input type="number" id="shop-qty" min="1" value="1" /></div>
+    <div class="form-grp">
+      <label>Aus vorhandenem Katalog wählen (optional)</label>
+      <select id="shop-catalog-select" onchange="handleShopCatalogSelect(this.value)">
+        <option value="">-- Freier Name (kein Katalogprodukt) --</option>
+      </select>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-add-shop')">Abbrechen</button>
+      <button class="btn btn-primary"   onclick="saveManualShoppingItem()">Hinzufügen</button>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Complete Shopping Item / Einlagern ins System -->
+<div class="overlay" id="m-shop-checkin">
+  <div class="modal">
+    <div class="modal-title" id="sci-title">📦 Gekauften Artikel einlagern</div>
+    <input type="hidden" id="sci-shop-id" />
+    <input type="hidden" id="sci-barcode" />
+    <div id="sci-unknown-notice" style="display:none;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:var(--rs);padding:10px;font-size:12px;margin-bottom:12px;color:var(--yel)">
+      ℹ️ Dieser Artikel wurde noch nicht als Katalogprodukt gespeichert. Bitte scanne oder gib einen Strichcode ein, um ihn dauerhaft anzulegen.
+    </div>
+    <div class="form-grp" id="sci-barcode-grp" style="display:none">
+      <label>Strichcode (Barcode)</label>
+      <input type="text" id="sci-custom-barcode" placeholder="Barcode scannen oder eingeben…" />
+    </div>
+    <div class="form-grp"><label>Lagerort</label>
+      <select id="sci-loc">
+        <option value="Kühlschrank">🧊 Kühlschrank</option>
+        <option value="Gefrierschrank">🥶 Gefrierschrank</option>
+        <option value="Arbeitsplatte">🍳 Arbeitsplatte</option>
+        <option value="Kleine Kammer">📦 Kleine Kammer</option>
+        <option value="Große Kammer">🏚️ Große Kammer</option>
+        <option value="Süßschrank">🍬 Süßschrank</option>
+      </select></div>
+    <div class="form-grp"><label>Stückzahl</label><input type="number" id="sci-qty" min="1" value="1" /></div>
+    <div class="form-grp">
+      <label>Haltbarkeit</label>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="sci-mode-mhd"  onclick="setDateMode('sci','mhd')">MHD eingeben</button>
+        <button class="mode-btn"        id="sci-mode-kauf" onclick="setDateMode('sci','kauf')">Kaufdatum + Tage</button>
+      </div>
+    </div>
+    <div id="sci-mhd-grp" class="form-grp"><label>MHD</label><input type="date" id="sci-mhd" /></div>
+    <div id="sci-kauf-grp" style="display:none">
+      <div class="form-row">
+        <div class="form-grp"><label>Kaufdatum</label><input type="date" id="sci-kaufdate" onchange="updateCalcMhd('sci')" /></div>
+        <div class="form-grp"><label>Haltbarkeit</label>
+          <select id="sci-shelf" onchange="updateCalcMhd('sci')">
+            <option value="1">1 Tag</option><option value="3">3 Tage</option><option value="7" selected>7 Tage</option><option value="14">14 Tage</option><option value="30">30 Tage</option><option value="90">90 Tage</option><option value="180">180 Tage</option><option value="365">1 Jahr</option>
+          </select></div>
+      </div>
+      <div class="calc-mhd" id="sci-calc-mhd"></div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-shop-checkin')">Abbrechen</button>
+      <button class="btn btn-primary"   onclick="confirmShopCheckin()">Im Bestand einbuchen</button>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Task Complete Modal (Multiple Persons) -->
+<div class="overlay" id="m-complete">
+  <div class="modal">
+    <div class="modal-title" id="ct-title" style="font-size:18px">Aufgabe erledigen</div>
+    <input type="hidden" id="ct-id" />
+    <p style="font-size:12px;color:var(--tx2);margin-bottom:8px">Wer hat mitgeholfen? (Mehrfachauswahl möglich)</p>
+    <div class="person-multi-grid" id="ct-person-grid"></div>
+
+    <div style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg);border:1px solid var(--brd);border-radius:var(--rs);margin:12px 0">
+      <label style="margin:0;font-size:11px;flex-shrink:0">📅 Verschieben statt erledigen:</label>
+      <input type="date" id="ct-postpone" style="padding:5px 8px;font-size:12px" />
+      <button class="btn btn-xs btn-secondary" onclick="postponeTask()">Verschieben</button>
+    </div>
+
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-complete')">Abbrechen</button>
+      <button class="btn btn-primary" id="ct-confirm-btn" onclick="submitCompleteTask()">✓ Erledigt buchen</button>
+    </div>
+  </div>
+</div>
+
+<!-- 8. Person Task Breakdown Modal -->
+<div class="overlay" id="m-person-log">
+  <div class="modal" style="width:520px">
+    <div class="modal-title" id="pl-title">📋 Aufgaben-Aufschlüsselung</div>
+    <div class="sec-body" id="pl-content" style="max-height:360px;padding:0"></div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-person-log')">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- 9. Manual Point Adjustment Modal -->
+<div class="overlay" id="m-adjust-pts">
+  <div class="modal" style="width:400px">
+    <div class="modal-title" id="ap-title">⚡ Punkte anpassen</div>
+    <input type="hidden" id="ap-person-id" />
+    <div class="form-grp">
+      <label>Punkteänderung (+ oder -)</label>
+      <input type="number" id="ap-delta" placeholder="z.B. 10 oder -5" />
+    </div>
+    <div class="form-grp">
+      <label>Begründung / Kommentar</label>
+      <textarea id="ap-reason" placeholder="Warum werden Punkte geändert? z.B. Extra-Belohnung für Gartenarbeit"></textarea>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-adjust-pts')">Abbrechen</button>
+      <button class="btn btn-primary"   onclick="savePointAdjustment()">Punkte buchen</button>
+    </div>
+  </div>
+</div>
+
+<!-- 10. Edit / Create Person Modal -->
+<div class="overlay" id="m-person-edit">
+  <div class="modal" style="width:400px">
+    <div class="modal-title" id="pe-title">👤 Person bearbeiten</div>
+    <input type="hidden" id="pe-person-id" />
+    <div class="form-grp"><label>Emoji / Bild</label><div class="epick" id="pe-epick"></div></div>
+    <div class="form-grp"><label>Name</label><input type="text" id="pe-name" placeholder="z.B. Chris, Oma, Felix…" /></div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-person-edit')">Abbrechen</button>
+      <button class="btn btn-primary"   onclick="savePersonEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- 11. Edit / Create Catalog Master Product Modal -->
+<div class="overlay" id="m-catalog-edit">
+  <div class="modal">
+    <div class="modal-title" id="ce-title">📦 Katalog-Produkt bearbeiten</div>
+    <input type="hidden" id="ce-original-barcode" />
+    <div class="form-grp"><label>Emoji</label><div class="epick" id="ce-epick"></div></div>
+    <div class="form-grp"><label>Produktname</label><input type="text" id="ce-name" placeholder="z.B. Butter" /></div>
+    <div class="form-grp"><label>Barcode / Strichcode</label><input type="text" id="ce-barcode" placeholder="Code…" /></div>
+    <div class="form-grp"><label>Standard-Lagerort</label>
+      <select id="ce-loc">
+        <option value="Kühlschrank">🧊 Kühlschrank</option>
+        <option value="Gefrierschrank">🥶 Gefrierschrank</option>
+        <option value="Arbeitsplatte">🍳 Arbeitsplatte</option>
+        <option value="Kleine Kammer">📦 Kleine Kammer</option>
+        <option value="Große Kammer">🏚️ Große Kammer</option>
+        <option value="Süßschrank">🍬 Süßschrank</option>
+      </select></div>
+    <div class="form-grp"><label>Typische Haltbarkeit (Tage)</label>
+      <select id="ce-shelf">
+        <option value="">Keine Vorgabe</option>
+        <option value="1">1 Tag</option><option value="2">2 Tage</option><option value="3">3 Tage</option><option value="5">5 Tage</option>
+        <option value="7">7 Tage (1 Woche)</option><option value="10">10 Tage</option><option value="14">14 Tage (2 Wochen)</option>
+        <option value="21">21 Tage (3 Wochen)</option><option value="30">30 Tage (1 Monat)</option><option value="60">60 Tage (2 Monate)</option>
+        <option value="90">90 Tage (3 Monate)</option><option value="180">180 Tage (6 Monate)</option><option value="365">365 Tage (1 Jahr)</option>
+      </select></div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-catalog-edit')">Abbrechen</button>
+      <button class="btn btn-primary"   onclick="saveCatalogProductEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- 12. Google Sheets Cloud Sync Modal -->
+<div class="overlay" id="m-cloud-sync">
+  <div class="modal" style="width:520px">
+    <div class="modal-title">☁️ Google Sheets Cloud Sync (Live-Safe)</div>
+    <p style="font-size:12px;color:var(--tx2);margin-bottom:12px;line-height:1.5">
+      Verbinde deine Haushalts-Datenbank mit einer kostenlosen Google Tabelle. Jede Änderung wird <strong>automatisch live gespeichert</strong> und beim Start synchronisiert.
+    </p>
+
+    <div class="form-grp">
+      <label>Google Apps Script Web-App URL</label>
+      <input type="text" id="cs-url-input" placeholder="https://script.google.com/macros/s/…/exec" />
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-primary" onclick="syncUploadGoogleSheetManually()">⬆️ Jetzt manuell hochladen</button>
+      <button class="btn btn-sm btn-secondary" onclick="syncDownloadGoogleSheet(true)">⬇️ Jetzt aus Cloud laden</button>
+    </div>
+
+    <details style="background:var(--bg);border:1px solid var(--brd);border-radius:var(--rs);padding:10px;font-size:11px;color:var(--tx2)" open>
+      <summary style="cursor:pointer;font-weight:700;color:var(--tx);margin-bottom:6px">📖 Wichtig: Google Script Vorlage & Berechtigungen</summary>
+      <p style="margin-bottom:6px;line-height:1.5">
+        Damit der Abruf ohne <em>"Failed to fetch"</em> funktioniert, muss die Web-App für <strong>„Jeder“</strong> freigegeben sein und sowohl JSON als auch JSONP unterstützen.
+      </p>
+      <ol style="padding-left:16px;line-height:1.6">
+        <li>Öffne deine Google Tabelle → <strong>Erweiterungen → Apps Script</strong></li>
+        <li>Ersetze den gesamten Code durch folgendes Skript:
+          <pre style="background:var(--surf2);padding:7px;border-radius:4px;margin:5px 0;overflow-x:auto;color:var(--acc2);font-size:10px;line-height:1.4">
+function doGet(e){
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var val = sheet.getRange(1, 1).getValue();
+  var cb = e && e.parameter ? e.parameter.callback : null;
+  if (cb) {
+    return ContentService.createTextOutput(cb + '(' + JSON.stringify(val || '{}') + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(val || '{}')
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e){
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = e && e.postData ? e.postData.contents : '';
+  if (data) {
+    sheet.getRange(1, 1).setValue(data);
+  }
+  return ContentService.createTextOutput('{"status":"ok"}')
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+        </li>
+        <li>Klicke auf <strong>Bereitstellen → Neue Bereitstellung</strong></li>
+        <li>Typ: <strong>Web-App</strong> auswählen</li>
+        <li><strong>Ausführen als:</strong> <em>Ich (deine E-Mail)</em></li>
+        <li><strong>Wer hat Zugriff:</strong> <strong>Jeder (auch anonym)</strong> ⚠️ <em>(Extrem wichtig gegen "Failed to fetch"!)</em></li>
+        <li>Kopiere die Web-App-URL (sie endet auf <code>/exec</code>) und füge sie oben ein!</li>
+      </ol>
+    </details>
+
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-cloud-sync')">Schließen</button>
+      <button class="btn btn-primary"   onclick="saveCloudSyncUrl()">URL Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- 13. New Task -->
+<div class="overlay" id="m-new-task">
+  <div class="modal">
+    <div class="modal-title" id="nt-title">Neue Aufgabe</div>
+    <input type="hidden" id="nt-type" />
+    <input type="hidden" id="nt-edit-id" />
+    <div class="form-grp"><label>Emoji</label><div class="epick" id="nt-epick"></div></div>
+    <div class="form-grp"><label>Name</label><input type="text" id="nt-name" placeholder="z.B. Kühlschrank putzen" /></div>
+    <div class="form-row">
+      <div class="form-grp"><label>Punkte</label><input type="number" id="nt-pts" min="1" value="5" /></div>
+      <div class="form-grp" id="nt-rhythm-grp"><label>Rhythmus</label>
+        <select id="nt-rhythm">
+          <option value="daily">Täglich</option><option value="every2d">Alle 2 Tage</option><option value="twice_weekly">2× pro Woche</option>
+          <option value="weekly" selected>Wöchentlich</option><option value="biweekly">Alle 2 Wochen</option><option value="monthly">Monatlich</option>
+          <option value="quarterly">Vierteljährlich</option><option value="biannual">Halbjährlich</option>
+        </select></div>
+      <div class="form-grp" id="nt-due-grp" style="display:none"><label>Fälligkeitsdatum</label><input type="date" id="nt-due" /></div>
+    </div>
+    <div class="form-grp"><label id="nt-start-lbl">Startdatum / Erstes Fälligkeitsdatum</label><input type="date" id="nt-start" /></div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-new-task')">Abbrechen</button>
+      <button class="btn btn-primary" id="nt-submit-btn" onclick="saveTask()">Erstellen</button>
+    </div>
+  </div>
+</div>
+
+<!-- 14. Quick Tile Task -->
+<div class="overlay" id="m-new-kachel">
+  <div class="modal" style="width:380px">
+    <div class="modal-title" id="kachel-modal-title">🚀 Schnellaufgabe konfigurieren</div>
+    <input type="hidden" id="kachel-edit-id" />
+    <div class="form-grp"><label>Emoji</label><div class="epick" id="kachel-epick"></div></div>
+    <div class="form-grp"><label>Aufgabenname</label><input type="text" id="kachel-name" placeholder="z.B. Mülleimer leeren" /></div>
+    <div class="form-grp"><label>Punkte</label><input type="number" id="kachel-pts" min="1" value="3" /></div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-new-kachel')">Abbrechen</button>
+      <button class="btn btn-primary" id="kachel-submit-btn" onclick="saveKachel()">Kachel erstellen</button>
+    </div>
+  </div>
+</div>
+
+<!-- 14b. Quick Tile Erfassen -->
+<div class="overlay" id="m-new-etile">
+  <div class="modal" style="width:400px">
+    <div class="modal-title">⚡ Schnell-Erfassung konfigurieren</div>
+    <input type="hidden" id="etile-edit-id" />
+    <div class="form-grp"><label>Emoji</label><div class="epick" id="etile-epick"></div></div>
+    <div class="form-grp"><label>Name (Anzeige auf Kachel)</label><input type="text" id="etile-label" placeholder="z.B. Milch" /></div>
+    <div class="form-grp"><label>Produkt verknüpfen (Barcode oder Name)</label>
+      <input type="text" id="etile-prod-search" placeholder="Produkt suchen…" oninput="handleEtileProdSearch(this.value)" autocomplete="off" />
+      <div class="search-results-list" id="etile-search-results"></div>
+      <input type="hidden" id="etile-barcode" />
+      <div id="etile-linked-prod" style="margin-top:6px;font-size:12px;color:var(--acc2)"></div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-new-etile')">Abbrechen</button>
+      <button class="btn btn-primary"   onclick="saveEtile()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- 15. Calendar Embed Settings -->
+<div class="overlay" id="m-cal">
+  <div class="modal">
+    <div class="modal-title">📅 Kalender-URL ändern</div>
+    <div class="form-grp"><label>iframe-Code oder src-URL einfügen</label><textarea id="cal-inp" rows="4"></textarea></div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeM('m-cal')">Abbrechen</button>
+      <button class="btn btn-primary"   onclick="saveCalFromModal()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ═══ SCRIPT ════════════════════════════════════════════════ -->
+<script>
+/* ══ VIEW MODE ROUTING (Mobile <-> Tablet) ═════════════════════ */
+function switchToMobile() {
+  localStorage.setItem('household_preferred_view', 'mobile');
+  window.location.href = 'mobile.html';
+}
+
+function switchToTablet() {
+  localStorage.setItem('household_preferred_view', 'tablet');
+  window.location.href = 'index.html';
+}
+
+(function initViewRouting() {
+  const params = new URLSearchParams(window.location.search);
+  const vParam = params.get('view');
+  if (vParam === 'mobile') {
+    localStorage.setItem('household_preferred_view', 'mobile');
+    window.location.href = 'mobile.html';
+    return;
+  }
+  if (vParam === 'tablet') {
+    localStorage.setItem('household_preferred_view', 'tablet');
+    return;
+  }
+  const pref = localStorage.getItem('household_preferred_view');
+  if (pref === 'mobile') {
+    window.location.href = 'mobile.html';
+    return;
+  }
+  if (!pref && window.innerWidth < 650 && window.innerHeight > window.innerWidth) {
+    window.location.href = 'mobile.html';
+  }
+})();
+
+/* ══ HELPERS ════════════════════════════════════════════════════ */
+const ld  = (k,d)=>{ try{ return JSON.parse(localStorage.getItem(k))??d }catch{ return d } };
+const sv  = (k,v)=> localStorage.setItem(k,JSON.stringify(v));
+const uid = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2);
+const td  = ()=> new Date().toISOString().split('T')[0];
+const mk  = ()=>{ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}` };
+const fmtD= s=>{ if(!s) return '–'; const [y,m,d]=s.split('-'); return `${d}.${m}.${y}` };
+const MDE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const fmtMK= k=>{ const [y,m]=k.split('-'); return `${MDE[+m-1]} ${y}` };
+const addDays=(dateStr,n)=>{ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().split('T')[0] };
+const daysUntil=mhd=>{ if(!mhd) return null; const t=new Date(); t.setHours(0,0,0,0); return Math.round((new Date(mhd+'T00:00:00')-t)/86400000) };
+
+/* ══ CLEAN URL HELPER ═══════════════════════════════════════════ */
+function cleanGoogleUrl(url){
+  url = (url || '').trim();
+  if(url.includes('/edit')){
+    url = url.replace(/\/edit.*$/, '/exec');
+  }
+  return url;
+}
+
+/* ══ CORE DATA STRUCTURES ═══════════════════════════════════════ */
+let persons = ld('persons', [
+  { id: 'chris', name: 'Chris', emoji: '👨' },
+  { id: 'tiffy', name: 'Tiffy', emoji: '👩' },
+  { id: 'emma',  name: 'Emma',  emoji: '🧒' }
+]);
+
+let productMap     = ld('productMap',    {}); // barcode -> { barcode, name, emoji, location, defaultShelfLife }
+let inventory      = ld('inventory',     []); // [ { id, barcode, name, emoji, location, qty, mhd, kaufdatum, shelfLife } ]
+let shopping       = ld('shopping',      []); // [ { id, barcode, name, emoji, qty, done } ]
+let recurringTasks = ld('recurringTasks', []);
+let onceTasks      = ld('onceTasks',     []);
+let completionLog  = ld('completionLog', []); // [ { id, taskId, taskName, taskEmoji, type, persons:[], pts, date } ]
+let pointAdjustments=ld('pointAdjustments',[]); // [ { id, personId, delta, reason, date } ]
+let quickTiles     = ld('quickTiles',    []);
+let erfassenTiles  = ld('erfassenTiles', []); // [ { id, emoji, label, barcode } ]
+let deletedIds     = ld('deletedIds',    {}); // { [id]: timestamp } – tombstones to prevent resurrecting deleted items
+let points         = ld('points',        { monat:mk(), chris:0, tiffy:0, emma:0 });
+let monthHistory   = ld('monthHistory',  []);
+let calEmbedUrl    = ld('calEmbedUrl',   '');
+let cloudSyncUrl   = ld('cloudSyncUrl',  '');
+
+/* ══ LIVE-SAVE & CONFLICT-FREE SYNC LOGIC ═══════════════════════ */
+let _liveSyncTimer      = null;
+let _isLiveSyncing      = false;
+let _isFetchingCloud    = false;
+let _lastSilentSyncRun  = 0;
+let _localModifiedTime  = ld('_localModifiedTime', Date.now());
+let _lastSyncTime       = ld('_lastSyncTime', 0);
+
+function updateSyncStatusUI(status){
+  const textEl = document.getElementById('sync-status-text');
+  const dotEl  = document.getElementById('sync-dot-icon');
+  if(!textEl || !dotEl) return;
+
+  dotEl.className = 'sync-dot';
+
+  if(!cloudSyncUrl){
+    textEl.textContent = '☁️ Sync: Offline';
+    dotEl.className = 'sync-dot';
+  } else if(status === 'syncing'){
+    textEl.textContent = '☁️ Sync…';
+    dotEl.className = 'sync-dot syncing';
+  } else if(status === 'online'){
+    textEl.textContent = '☁️ Gespeichert';
+    dotEl.className = 'sync-dot online';
+  } else if(status === 'error'){
+    textEl.textContent = '⚠️ Sync-Fehler';
+    dotEl.className = 'sync-dot error';
+  }
+}
+
+function queueLiveSync(){
+  if(!cloudSyncUrl) return;
+  updateSyncStatusUI('syncing');
+  clearTimeout(_liveSyncTimer);
+  _liveSyncTimer = setTimeout(async () => {
+    _liveSyncTimer = null;
+    await executeLiveSave();
+  }, 600); // 600ms debounce
+}
+
+async function executeLiveSave(){
+  if(!cloudSyncUrl || _isLiveSyncing) return;
+  _isLiveSyncing = true;
+  updateSyncStatusUI('syncing');
+
+  const cleanUrl = cleanGoogleUrl(cloudSyncUrl);
+  const payload = JSON.stringify(getAllDatabaseObject());
+
+  try {
+    // Send with text/plain to avoid CORS preflight OPTIONS in Google Apps Script!
+    await fetch(cleanUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: payload,
+      redirect: 'follow'
+    });
+    _lastSyncTime = _localModifiedTime;
+    sv('_lastSyncTime', _lastSyncTime);
+    updateSyncStatusUI('online');
+  } catch(err){
+    console.warn('Live save standard fetch failed, fallback with no-cors:', err);
+    try {
+      await fetch(cleanUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: payload
+      });
+      _lastSyncTime = _localModifiedTime;
+      sv('_lastSyncTime', _lastSyncTime);
+      updateSyncStatusUI('online');
+    } catch(err2){
+      console.error('Live sync error:', err2);
+      updateSyncStatusUI('error');
+    }
+  } finally {
+    _isLiveSyncing = false;
+  }
+}
+
+function persist(skipLiveSync = false){
+  _localModifiedTime = Date.now();
+  sv('_localModifiedTime', _localModifiedTime);
+
+  sv('persons',         persons);
+  sv('productMap',      productMap);
+  sv('inventory',       inventory);
+  sv('shopping',        shopping);
+  sv('recurringTasks',  recurringTasks);
+  sv('onceTasks',       onceTasks);
+  sv('completionLog',   completionLog);
+  sv('pointAdjustments',pointAdjustments);
+  sv('quickTiles',      quickTiles);
+  sv('erfassenTiles',   erfassenTiles);
+  sv('deletedIds',      deletedIds);
+  sv('points',          points);
+  sv('monthHistory',    monthHistory);
+  sv('calEmbedUrl',     calEmbedUrl);
+  sv('cloudSyncUrl',    cloudSyncUrl);
+
+  if(!skipLiveSync && cloudSyncUrl){
+    queueLiveSync();
+  }
+}
+
+function getAllDatabaseObject(){
+  return {
+    version: 3,
+    lastModified: _localModifiedTime,
+    exportedAt: new Date().toISOString(),
+    persons, productMap, inventory, shopping,
+    recurringTasks, onceTasks, completionLog, pointAdjustments,
+    quickTiles, erfassenTiles, deletedIds, points, monthHistory, calEmbedUrl, cloudSyncUrl
+  };
+}
+
+/* ══ INTELLIGENT MERGE (PREVENTS DATA OVERWRITING & RESURRECTION) ═════════════ */
+function mergeDatabaseObject(data){
+  if(!data || typeof data !== 'object') return false;
+
+  const remoteTime = data.lastModified || (data.exportedAt ? new Date(data.exportedAt).getTime() : 0);
+  const localChangedSinceLastSync = _localModifiedTime > _lastSyncTime;
+
+  // 0. Merge Tombstones (deletedIds)
+  if(data.deletedIds && typeof data.deletedIds === 'object'){
+    for(const [did, dtime] of Object.entries(data.deletedIds)){
+      if(!deletedIds[did] || dtime > deletedIds[did]){
+        deletedIds[did] = dtime;
+      }
+    }
+  }
+  // Prune tombstones older than 30 days
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  for(const did in deletedIds){
+    if(deletedIds[did] < cutoff) delete deletedIds[did];
+  }
+
+  // 1. Persons: union by id
+  if(Array.isArray(data.persons) && data.persons.length){
+    const localPersonMap = new Map(persons.map(p => [p.id, p]));
+    data.persons.forEach(rp => {
+      if(!localPersonMap.has(rp.id)){
+        persons.push(rp);
+      }
+    });
+  }
+
+  // 2. Product Catalog: merge maps (keep all items unless deleted)
+  if(data.productMap && typeof data.productMap === 'object'){
+    for(const [code, p] of Object.entries(data.productMap)){
+      if(!deletedIds['PROD_' + code] && !productMap[code]){
+        productMap[code] = p;
+      }
+    }
+  }
+
+  // 3. Inventory: purge deleted, then merge
+  inventory = inventory.filter(b => !deletedIds[b.id] && b.qty > 0);
+
+  if(Array.isArray(data.inventory)){
+    const localBatchMap = new Map(inventory.map(b => [b.id, b]));
+
+    data.inventory.forEach(rb => {
+      if(deletedIds[rb.id] || (rb.qty || 0) <= 0) return; // Do not revive deleted batches!
+
+      if(localBatchMap.has(rb.id)){
+        const lb = localBatchMap.get(rb.id);
+        if((rb.updatedAt || 0) > (lb.updatedAt || 0)){
+          lb.qty = rb.qty;
+          lb.location = rb.location;
+          lb.mhd = rb.mhd;
+          lb.updatedAt = rb.updatedAt;
+        } else if((rb.updatedAt || 0) === (lb.updatedAt || 0)){
+          lb.qty = Math.min(lb.qty, rb.qty);
+        }
+        if(lb.qty <= 0){
+          deletedIds[lb.id] = Date.now();
+        }
+      } else {
+        inventory.push(rb);
+      }
+    });
+    inventory = inventory.filter(b => !deletedIds[b.id] && b.qty > 0);
+    inventory.forEach(b => {
+      if((!b.name || !b.name.trim()) && b.barcode && productMap[b.barcode]){
+        b.name = productMap[b.barcode].name;
+        b.emoji = b.emoji || productMap[b.barcode].emoji;
+      }
+    });
+  }
+
+  // 4. Shopping list: purge deleted, merge active items
+  shopping = shopping.filter(s => !deletedIds[s.id]);
+
+  if(Array.isArray(data.shopping)){
+    const localShopMap = new Map(shopping.map(s => [s.id, s]));
+
+    data.shopping.forEach(rs => {
+      if(deletedIds[rs.id]) return; // Do not revive deleted shopping items!
+
+      const localItem = localShopMap.get(rs.id) || shopping.find(s => (rs.barcode && s.barcode === rs.barcode) || s.name.toLowerCase() === rs.name.toLowerCase());
+      if(localItem){
+        if(rs.done) localItem.done = true;
+        if((rs.updatedAt || 0) > (localItem.updatedAt || 0)){
+          localItem.qty = rs.qty;
+          localItem.done = rs.done;
+          localItem.updatedAt = rs.updatedAt;
+        } else {
+          localItem.qty = Math.max(localItem.qty || 1, rs.qty || 1);
+        }
+      } else {
+        shopping.push(rs);
+      }
+    });
+    shopping = shopping.filter(s => !deletedIds[s.id]);
+  }
+
+  // 5. Tasks: keep latest completions & statuses, purge deleted
+  recurringTasks = recurringTasks.filter(t => !deletedIds[t.id]);
+  onceTasks = onceTasks.filter(t => !deletedIds[t.id]);
+
+  if(Array.isArray(data.recurringTasks)){
+    const localRecMap = new Map(recurringTasks.map(t => [t.id, t]));
+    data.recurringTasks.forEach(rt => {
+      if(deletedIds[rt.id]) return;
+      const lt = localRecMap.get(rt.id);
+      if(!lt){
+        recurringTasks.push(rt);
+      } else {
+        if((rt.lastCompleted || '') > (lt.lastCompleted || '')){
+          lt.lastCompleted = rt.lastCompleted;
+          lt.naechste = rt.naechste;
+        }
+      }
+    });
+  }
+
+  if(Array.isArray(data.onceTasks)){
+    const localOnceMap = new Map(onceTasks.map(t => [t.id, t]));
+    data.onceTasks.forEach(ot => {
+      if(deletedIds[ot.id]) return;
+      const lt = localOnceMap.get(ot.id);
+      if(!lt){
+        onceTasks.push(ot);
+      } else {
+        if(ot.done){
+          lt.done = true;
+          lt.doneVon = ot.doneVon || lt.doneVon;
+          lt.doneAm = ot.doneAm || lt.doneAm;
+        }
+      }
+    });
+  }
+
+  // 6. Logs & Point Adjustments: union by id
+  if(Array.isArray(data.completionLog)){
+    const seenLog = new Set(completionLog.map(l => l.id));
+    data.completionLog.forEach(l => {
+      if(!seenLog.has(l.id)){
+        completionLog.push(l);
+        seenLog.add(l.id);
+      }
+    });
+    completionLog.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    if(completionLog.length > 250) completionLog.length = 250;
+  }
+
+  if(Array.isArray(data.pointAdjustments)){
+    const seenAdj = new Set(pointAdjustments.map(a => a.id));
+    data.pointAdjustments.forEach(a => {
+      if(!seenAdj.has(a.id)){
+        pointAdjustments.push(a);
+        seenAdj.add(a.id);
+      }
+    });
+  }
+
+  // 7. Quick Tiles: union by id
+  if(Array.isArray(data.quickTiles)){
+    const seenQ = new Set(quickTiles.map(t => t.id));
+    data.quickTiles.forEach(t => { if(!seenQ.has(t.id) && !deletedIds[t.id]) quickTiles.push(t); });
+  }
+  if(Array.isArray(data.erfassenTiles)){
+    const seenE = new Set(erfassenTiles.map(t => t.id));
+    data.erfassenTiles.forEach(t => { if(!seenE.has(t.id) && !deletedIds[t.id]) erfassenTiles.push(t); });
+  }
+
+  // 8. Points & History:
+  if(data.points && typeof data.points === 'object'){
+    if(data.points.monat === points.monat){
+      persons.forEach(p => {
+        points[p.id] = Math.max(points[p.id] || 0, data.points[p.id] || 0);
+      });
+    } else if(data.points.monat > points.monat){
+      points = data.points;
+    }
+  }
+  if(Array.isArray(data.monthHistory)){
+    const seenMon = new Set(monthHistory.map(m => m.monat));
+    data.monthHistory.forEach(m => { if(!seenMon.has(m.monat)) monthHistory.push(m); });
+  }
+
+  // Update timestamps
+  _lastSyncTime = Math.max(remoteTime, Date.now());
+  sv('_lastSyncTime', _lastSyncTime);
+
+  if(!localChangedSinceLastSync){
+    _localModifiedTime = _lastSyncTime;
+    sv('_localModifiedTime', _localModifiedTime);
+  }
+
+  persist(true); // Don't re-trigger live sync immediately
+  renderAll();
+  updateSyncStatusUI('online');
+
+  // If local had unpushed changes while remote also changed, push merged state now!
+  if(localChangedSinceLastSync){
+    queueLiveSync();
+  }
+
+  return true;
+}
+
+function loadDatabaseObject(data){
+  if(!data || typeof data !== 'object') throw new Error('Ungültiges Datenbankformat');
+  mergeDatabaseObject(data);
+}
+
+/* ══ MONTHLY RESET ══════════════════════════════════════════════ */
+function checkMonthlyReset(){
+  const mk_ = mk();
+  if(points.monat !== mk_){
+    const snapshot = { monat: points.monat };
+    persons.forEach(p => { snapshot[p.id] = points[p.id] || 0; });
+    const hasPoints = persons.some(p => (points[p.id]||0) > 0);
+    if(hasPoints) monthHistory.unshift(snapshot);
+
+    const fresh = { monat: mk_ };
+    persons.forEach(p => { fresh[p.id] = 0; });
+    points = fresh;
+    persist();
+  }
+  persons.forEach(p => { if(points[p.id] === undefined) points[p.id] = 0; });
+}
+
+/* ══ TOAST ══════════════════════════════════════════════════════ */
+let _tt;
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`show ${type}`;
+  clearTimeout(_tt); _tt=setTimeout(()=>el.className='',3000);
+}
+
+/* ══ TABS ═══════════════════════════════════════════════════════ */
+function switchTab(tab){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.getElementById(`${tab}-pane`).classList.add('active');
+
+  document.getElementById('acts-haushalt').style.display=tab==='haushalt'?'':'none';
+  document.getElementById('acts-aufgaben').style.display=tab==='aufgaben'?'':'none';
+  document.getElementById('acts-produkte').style.display=tab==='produkte'?'':'none';
+  document.getElementById('acts-personen').style.display=tab==='personen'?'':'none';
+
+  if(tab === 'produkte') renderProdukteTab();
+  if(tab === 'personen') renderPersonenTab();
+}
+
+/* ══ MODALS ═════════════════════════════════════════════════════ */
+function openM(id){ document.getElementById(id).classList.add('open') }
+function closeM(id){ document.getElementById(id).classList.remove('open') }
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open') }));
+
+/* ══ EMOJI PICKERS ══════════════════════════════════════════════ */
+const FOOD_EM=['🥛','🧀','🥚','🥩','🥦','🍎','🍌','🍞','🫙','🥫','🧂','🍋','🥕','🧅','🥔','🍇','🫐','🥑','🌽','🍅','🥒','🥗','🍳','🥜','🫒','🧄','🫚','🥐','🍷','🧃','🍺','🫗','🥤','☕','🍵','🍬','🍫','🍭','🧁','🍰','🧆','🥞','🍤','🐟','🦐','🥓','🍗','🍕'];
+const TASK_EM=['🧹','🧺','🧽','🫧','🪣','🧴','🛒','🌿','🍽️','🪴','🐶','🐱','🚿','🛁','🚽','🪟','🏠','📦','🗑️','💡','🔧','🪛','🧰','📬','🚗','🛵','💊','📚','📝','💻','🌱','🛍️','♻️','🪥','🪞','🧸','🎮','🎯','🏋️','🌸','🚪','🧲','🔑','🖥️'];
+const USER_EM=[
+  // Smileys & Emotion
+  '😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖',
+  // People & Body
+  '👶','🧒','👦','👧','🧑','👱','👨','🧔','👩','🧓','👴','👵','👲','🧕','🤱','👼','🎅','🤶','🦸','🦹','🧙','🧝','🧛','🧟','🧌','🧞','🧜','🧚','👮','🕵️','💂','🥷','👷','🫅','🤴','👸','🎩','👰','🤵','🙍','🙎','🙅','🙆','💁','🙋','🧏','🙇','🤦','🤷','💆','💇','🚶','🧍','🧎','🏃','💃','🕺','👫','👬','👭','💑','👪','🫂',
+  // Gestures & Hands
+  '👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','🦻','👃',
+  // Animals
+  '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🐞','🐜','🪲','🦟','🦗','🪳','🕷️','🦂','🐢','🦎','🐍','🦕','🦖','🦑','🐙','🦞','🦀','🦐','🐡','🐟','🐠','🐬','🦈','🐳','🐋','🦭','🐊','🐅','🐆','🦓','🦍','🦧','🦣','🐘','🦏','🦛','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿️','🦔',
+  // Food & Drink
+  '🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🫑','🧄','🧅','🥔','🍠','🫘','🥐','🥯','🍞','🥖','🫓','🧀','🥚','🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🫔','🌮','🌯','🧆','🥙','🥗','🥘','🫕','🥫','🍱','🍣','🍤','🍙','🍚','🍛','🍜','🍝','🍢','🍡','🧁','🎂','🍰','🥮','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🧃','🥛','☕','🫖','🧋','🍵','🍶','🍾','🍷','🍸','🍹','🍺','🍻','🥂','🥃','🫗',
+  // Nature & Weather
+  '🌸','🌹','🌺','🌻','🌼','💐','🍀','🌿','🍁','🍂','🍃','🌱','🌲','🌳','🌴','🪴','🌵','🎋','🎍','☘️','🪨','🪵','🌾','🌙','🌟','⭐','💫','✨','🌈','🌤️','⛅','🌦️','🌧️','🌨️','🌩️','🌪️','🌫️','🌬️','🌊','🌀','🔥','💧','🌍','🌎','🌏','🏔️','⛰️','🌋','🗻','🏕️','🏖️','🏜️','🏝️','🏞️',
+  // Activities & Sports
+  '⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🥍','🏑','🪃','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛷️','🏂','🪂','🏋️','🤸','⛹️','🤺','🤾','🏌️','🏇','🧘','🏄','🏊','🚴','🚵','🏆','🥇','🎖️','🏅','🎗️','🎫','🎟️','🎪','🤹','🎭','🎨','🖼️','🎬','🎤','🎧','🎼','🎵','🎶','🥁','🎷','🎺','🎸','🎹','🎲','♟️','🎯','🎳','🎰','🎮','🕹️',
+  // Travel & Places
+  '🚀','🛸','🛩️','✈️','🚂','🚢','🚗','🚕','🚙','🛻','🚌','🚎','🏎️','🚓','🚑','🚒','🚐','🛺','🚲','🛵','🏍️','🛻','🚁','🛶','⛵','🚤','🏗️','🏘️','🏚️','🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏬','🏭','🏯','🏰','💒','🗼','🗽','⛪','🕌','🕍','⛩️','🕋','⛲','🌁','🌃','🏙️','🌄','🌅','🌆','🌇','🌉','🎠','🛝','🎡','🎢','💈','🎪',
+  // Objects
+  '💎','👑','🎩','🪄','🔮','🧿','🪬','🗝️','🔑','🔓','🔒','🔨','🪓','🔧','🪛','🔩','⚙️','🧲','🪜','🧰','🪤','🧯','🛒','🎁','🎀','🎊','🎉','🎈','🎆','🎇','🪩','🎑','🎏','🎐','🧧','🎋','🎍','🧸','🪆','🪅','🎭','🎨','🖌️','🖍️','✏️','📝','📓','📔','📒','📕','📗','📘','📙','📚','📖','🔖','🏷️','💰','🪙','💴','💵','💶','💷','💸','💳','🧾','📦','📫','📬','📭','📮','📯','📢','📣','📱','💻','🖥️','🖨️','⌨️','🖱️','🖲️','📷','📸','📹','🎥','📽️','🎞️','📞','☎️','📟','📠','📺','📻','🎙️','🧭','⏰','🕰️','⌚','⏱️','⏲️','💡','🔦','🕯️','🪔',
+  // Hearts & Symbols
+  '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✌️','🕊️','🌟','⭐','🌙','☀️','🌈','🍀','♾️','✅','❎','🆗','🆙','🆒','🆕','🆓','🔝','🔛','🔜','🔚','🚫','⛔','📛','🔞','🔕','🔇','🔈','🔉','🔊','📣','📢','🔔','🔕','🎵','🎶','💯','✨','🌀','🔱','⚜️','♻️','💠','🔷','🔶','🔹','🔸','▪️','▫️','⬛','⬜','🟥','🟧','🟨','🟩','🟦','🟪','⚫','⚪','🟫'
+];
+const ALL_EM = USER_EM;
+
+let _foodEmoji='🛒', _taskEmoji='🧹', _kachelEmoji='🗑️', _userEmoji='🧑', _catEmoji='📦', _shopEmoji='🛒';
+
+function buildEPick(cid,list,currentRef,setter){
+  const c=document.getElementById(cid); if(!c) return;
+  c.innerHTML='';
+  list.forEach(em=>{
+    const btn=document.createElement('div');
+    btn.className='ep'+(em===currentRef?' sel':''); btn.textContent=em;
+    btn.onclick=()=>{ setter(em); c.querySelectorAll('.ep').forEach(b=>b.classList.remove('sel')); btn.classList.add('sel') };
+    c.appendChild(btn);
+  });
+}
+
+/* ══ CALENDAR ═══════════════════════════════════════════════════ */
+function extractSrc(raw){
+  raw=(raw||'').trim();
+  const m=raw.match(/src=["']([^"']+)["']/); if(m) return m[1];
+  if(raw.startsWith('http')) return raw;
+  return null;
+}
+function applyEmbed(url){
+  const setup=document.getElementById('gcal-setup'),wrap=document.getElementById('gcal-wrap'),frame=document.getElementById('gcal-frame');
+  if(url){ let u=url; if(!u.includes('showTitle')) u+=(u.includes('?')?'&':'?')+'showTitle=0&showNav=1&showPrint=0&showTabs=1'; frame.src=u; setup.style.display='none'; wrap.classList.add('vis') }
+  else{ setup.style.display=''; wrap.classList.remove('vis') }
+}
+function saveCalUrl(){ const url=extractSrc(document.getElementById('gcal-url-inp').value); if(!url){ toast('Ungültige URL','warn'); return } calEmbedUrl=url; persist(); applyEmbed(url); toast('✅ Kalender verbunden!') }
+function openCalSettings(){ document.getElementById('cal-inp').value=calEmbedUrl||''; openM('m-cal') }
+function saveCalFromModal(){ const url=extractSrc(document.getElementById('cal-inp').value); if(!url){ toast('Ungültige URL','warn'); return } calEmbedUrl=url; persist(); applyEmbed(url); closeM('m-cal'); toast('✅ Kalender aktualisiert!') }
+
+/* ══ DATE MODE TOGGLE ═══════════════════════════════════════════ */
+function setDateMode(prefix,mode){
+  const isMhd=mode==='mhd';
+  document.getElementById(`${prefix}-mode-mhd`).classList.toggle('active',isMhd);
+  document.getElementById(`${prefix}-mode-kauf`).classList.toggle('active',!isMhd);
+  document.getElementById(`${prefix}-mhd-grp`).style.display=isMhd?'':'none';
+  document.getElementById(`${prefix}-kauf-grp`).style.display=isMhd?'none':'';
+  if(!isMhd) updateCalcMhd(prefix);
+}
+function updateCalcMhd(prefix){
+  const kd=document.getElementById(`${prefix}-kaufdate`).value;
+  const sl=parseInt(document.getElementById(`${prefix}-shelf`).value)||7;
+  const el=document.getElementById(`${prefix}-calc-mhd`);
+  if(kd){ el.textContent=`📅 Empf. Haltbar bis: ${fmtD(addDays(kd,sl))}` } else { el.textContent='→ Kaufdatum wählen' }
+}
+function getDateFromForm(prefix){
+  const isMhd=document.getElementById(`${prefix}-mode-mhd`).classList.contains('active');
+  if(isMhd) return { mhd:document.getElementById(`${prefix}-mhd`).value||null, kaufdatum:null, shelfLife:null };
+  const kd=document.getElementById(`${prefix}-kaufdate`).value;
+  const sl=parseInt(document.getElementById(`${prefix}-shelf`).value)||7;
+  if(!kd) return { mhd:null, kaufdatum:null, shelfLife:null };
+  return { mhd:addDays(kd,sl), kaufdatum:kd, shelfLife:sl };
+}
+
+/* ══ BARCODE SCANNER ════════════════════════════════════════════ */
+let scanBuf='',scanTimer;
+document.addEventListener('keydown',e=>{
+  const scanOpen=document.getElementById('m-scan').classList.contains('open');
+  const entOpen =document.getElementById('m-entnehmen').classList.contains('open');
+  if(scanOpen&&document.activeElement!==document.getElementById('scan-input')&&document.activeElement!==document.getElementById('scan-name-search')){
+    if(e.key==='Enter'){ if(scanBuf.length>2){ document.getElementById('scan-input').value=scanBuf; updScan(scanBuf) } scanBuf=''; clearTimeout(scanTimer) }
+    else if(e.key.length===1){ scanBuf+=e.key; clearTimeout(scanTimer); scanTimer=setTimeout(()=>scanBuf='',150) }
+  }
+  if(entOpen&&document.activeElement!==document.getElementById('ent-search')){
+    if(e.key==='Enter'){ if(scanBuf.length>2){ document.getElementById('ent-search').value=scanBuf; filterEnt() } scanBuf=''; clearTimeout(scanTimer) }
+    else if(e.key.length===1){ scanBuf+=e.key; clearTimeout(scanTimer); scanTimer=setTimeout(()=>scanBuf='',150) }
+  }
+});
+
+/* ══ ERFASSEN FLOW (ENHANCED) ═══════════════════════════════════ */
+function openErfassen(){
+  document.getElementById('scan-input').value='';
+  document.getElementById('scan-name-search').value='';
+  document.getElementById('scan-search-results').classList.remove('vis');
+  updScan('');
+  renderErfassenQuickTiles();
+  openM('m-scan');
+  setTimeout(()=>document.getElementById('scan-input').focus(),100);
+}
+
+function updScan(v){ document.getElementById('scan-display').textContent=v||'—' }
+document.getElementById('scan-input').addEventListener('input',function(){ updScan(this.value) });
+document.getElementById('scan-input').addEventListener('keydown',e=>{ if(e.key==='Enter') processScan() });
+
+/* ══ ERFASSEN QUICK TILES ═══════════════════════════════════════ */
+let _etileEditMode = false;
+let _etileEmoji = '🛒';
+
+function toggleEtileEdit(){
+  _etileEditMode = !_etileEditMode;
+  document.getElementById('erfassen-quick-tiles').classList.toggle('etile-edit-mode', _etileEditMode);
+  document.getElementById('etile-edit-btn').textContent = _etileEditMode ? '✅ Fertig' : '✏️ Bearbeiten';
+}
+
+function openNewEtile(existingId){
+  const tile = existingId ? erfassenTiles.find(t=>t.id===existingId) : null;
+  document.getElementById('etile-edit-id').value = existingId || '';
+  _etileEmoji = tile ? tile.emoji : '🛒';
+  document.getElementById('etile-label').value = tile ? tile.label : '';
+  document.getElementById('etile-barcode').value = tile ? (tile.barcode||'') : '';
+  document.getElementById('etile-linked-prod').textContent = tile && tile.barcode && productMap[tile.barcode]
+    ? '🔗 ' + productMap[tile.barcode].name : '';
+  document.getElementById('etile-prod-search').value = '';
+  document.getElementById('etile-search-results').innerHTML = '';
+  document.getElementById('etile-search-results').classList.remove('vis');
+  buildEPick('etile-epick', ALL_EM, _etileEmoji, em => _etileEmoji = em);
+  openM('m-new-etile');
+  setTimeout(()=>document.getElementById('etile-label').focus(), 100);
+}
+
+function handleEtileProdSearch(val){
+  const resultsDiv = document.getElementById('etile-search-results');
+  const q = val.trim().toLowerCase();
+  if(!q){ resultsDiv.classList.remove('vis'); return; }
+  const matches = Object.values(productMap).filter(p => p.name.toLowerCase().includes(q));
+  if(matches.length === 0){
+    resultsDiv.innerHTML = '<div style="font-size:11px;color:var(--tx2);padding:6px">Kein Produkt gefunden.</div>';
+    resultsDiv.classList.add('vis'); return;
+  }
+  resultsDiv.innerHTML = '';
+  matches.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'search-res-item';
+    item.innerHTML = `<span style="font-size:18px">${p.emoji}</span><span style="font-weight:600">${p.name}</span> <span style="font-size:11px;color:var(--tx2)">(${p.location})</span>`;
+    item.onclick = () => {
+      document.getElementById('etile-barcode').value = p.barcode;
+      document.getElementById('etile-linked-prod').textContent = '🔗 ' + p.name;
+      document.getElementById('etile-prod-search').value = '';
+      resultsDiv.classList.remove('vis');
+      // Auto-fill emoji + label if empty
+      if(!document.getElementById('etile-label').value) document.getElementById('etile-label').value = p.name;
+      if(_etileEmoji === '🛒'){ _etileEmoji = p.emoji; buildEPick('etile-epick', ALL_EM, _etileEmoji, em => _etileEmoji = em); }
+    };
+    resultsDiv.appendChild(item);
+  });
+  resultsDiv.classList.add('vis');
+}
+
+function saveEtile(){
+  const label = document.getElementById('etile-label').value.trim();
+  if(!label){ toast('❗ Bitte einen Namen eingeben'); return; }
+  const barcode = document.getElementById('etile-barcode').value || '';
+  const editId  = document.getElementById('etile-edit-id').value;
+  if(editId){
+    const t = erfassenTiles.find(t=>t.id===editId);
+    if(t){ t.emoji = _etileEmoji; t.label = label; t.barcode = barcode; }
+  } else {
+    erfassenTiles.push({ id: uid(), emoji: _etileEmoji, label, barcode });
+  }
+  persist(); closeM('m-new-etile'); renderErfassenQuickTiles();
+  toast(`⚡ Kachel "${label}" gespeichert`);
+}
+
+function deleteEtile(id, e){
+  e.stopPropagation();
+  erfassenTiles = erfassenTiles.filter(t => t.id !== id);
+  persist(); renderErfassenQuickTiles();
+}
+
+function fireEtile(tile){
+  if(_etileEditMode){ openNewEtile(tile.id); return; }
+  if(tile.barcode && productMap[tile.barcode]){
+    closeM('m-scan');
+    selectProductForCapture(tile.barcode);
+  } else {
+    // No barcode linked → open scan dialog with name pre-filled
+    closeM('m-scan');
+    toast(`⚡ "${tile.label}" – bitte Barcode scannen oder neu anlegen`);
+    document.getElementById('scan-input').value = '';
+    updScan('');
+    document.getElementById('scan-name-search').value = tile.label;
+    handleScanNameSearch(tile.label);
+    openM('m-scan');
+  }
+}
+
+function renderErfassenQuickTiles(){
+  const g = document.getElementById('erfassen-quick-tiles');
+  g.innerHTML = '';
+  if(_etileEditMode) g.classList.add('etile-edit-mode');
+  erfassenTiles.forEach(tile => {
+    const k = document.createElement('div');
+    k.className = 'etile';
+    k.title = tile.label + (tile.barcode && productMap[tile.barcode] ? ' → ' + productMap[tile.barcode].name : '');
+    k.innerHTML = `<span class="etile-em">${tile.emoji}</span><span class="etile-nm">${tile.label}</span>`;
+    k.onclick = () => fireEtile(tile);
+    const del = document.createElement('div');
+    del.className = 'etile-del'; del.textContent = 'x';
+    del.onclick = e => deleteEtile(tile.id, e);
+    k.appendChild(del);
+    g.appendChild(k);
+  });
+  // Add button
+  const add = document.createElement('div');
+  add.className = 'etile-add'; add.textContent = '+'; add.title = 'Neue Schnell-Kachel';
+  add.onclick = () => openNewEtile();
+  g.appendChild(add);
+}
+
+function handleScanNameSearch(val){
+  const resultsDiv = document.getElementById('scan-search-results');
+  const q = val.trim().toLowerCase();
+  if(!q){ resultsDiv.classList.remove('vis'); return; }
+  const matches = Object.values(productMap).filter(p => p.name.toLowerCase().includes(q));
+  if(matches.length === 0){
+    resultsDiv.innerHTML = '<div style="font-size:11px;color:var(--tx2);padding:6px">Kein Produkt gefunden. Bitte Barcode scannen oder unten neu anlegen.</div>';
+    resultsDiv.classList.add('vis');
+    return;
+  }
+  resultsDiv.innerHTML = '';
+  matches.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'search-res-item';
+    item.innerHTML = `<span style="font-size:18px">${p.emoji}</span><span style="font-weight:600">${p.name}</span> <span style="font-size:11px;color:var(--tx2)">(${p.location})</span>`;
+    item.onclick = () => selectProductForCapture(p.barcode);
+    resultsDiv.appendChild(item);
+  });
+  resultsDiv.classList.add('vis');
+}
+
+function selectProductForCapture(code){
+  closeM('m-scan');
+  const p = productMap[code];
+  if(!p) return;
+  document.getElementById('ep-barcode').value = code;
+  document.getElementById('ep-emoji').textContent = p.emoji;
+  document.getElementById('ep-name').textContent = p.name;
+  document.getElementById('ep-loc').textContent = '📍 Standard: ' + p.location;
+  document.getElementById('ep-charge-loc').value = p.location;
+  document.getElementById('ep-title').textContent = p.emoji + ' ' + p.name + ' erfassen';
+  document.getElementById('ep-qty').value = 1;
+  document.getElementById('ep-mhd').value = '';
+  document.getElementById('ep-kaufdate').value = td();
+
+  if(p.defaultShelfLife){
+    document.getElementById('ep-shelf').value = p.defaultShelfLife;
+    setDateMode('ep','kauf');
+  } else {
+    setDateMode('ep','mhd');
+  }
+  openM('m-exist-prod');
+  setTimeout(()=>document.getElementById('ep-mhd').focus(),100);
+}
+
+function processScan(){
+  const code = document.getElementById('scan-input').value.trim();
+  if(!code){ toast('Bitte Barcode eingeben oder Produkt suchen','warn'); return; }
+  closeM('m-scan');
+
+  if(productMap[code]){
+    selectProductForCapture(code);
+  } else {
+    document.getElementById('np-barcode').value = code;
+    document.getElementById('np-name').value = '';
+    document.getElementById('np-qty').value = 1;
+    document.getElementById('np-mhd').value = '';
+    document.getElementById('np-kaufdate').value = td();
+    _foodEmoji = '🛒';
+    buildEPick('np-emoji-picker', ALL_EM, _foodEmoji, em => _foodEmoji = em);
+    setDateMode('np','mhd');
+    openM('m-new-prod');
+    setTimeout(()=>document.getElementById('np-name').focus(),100);
+  }
+}
+
+function saveNewProduct(){
+  const code     = document.getElementById('np-barcode').value.trim();
+  const name     = document.getElementById('np-name').value.trim();
+  const location = document.getElementById('np-loc').value;
+  const qty      = parseInt(document.getElementById('np-qty').value) || 1;
+  const {mhd,kaufdatum,shelfLife} = getDateFromForm('np');
+  if(!name){ toast('Bitte Namen eingeben','warn'); return; }
+
+  // Save/update catalog product
+  productMap[code] = { barcode:code, name, emoji:_foodEmoji, location, defaultShelfLife:shelfLife||null };
+  // Push independent batch to inventory
+  inventory.push({ id:uid(), barcode:code, name, emoji:_foodEmoji, location, qty, mhd, kaufdatum, shelfLife, updatedAt:Date.now() });
+  persist(); closeM('m-new-prod');
+  toast(`✅ ${_foodEmoji} ${name} erfasst`);
+  renderAll();
+}
+
+function saveExistProd(){
+  const code     = document.getElementById('ep-barcode').value;
+  const location = document.getElementById('ep-charge-loc').value;
+  const qty      = parseInt(document.getElementById('ep-qty').value) || 1;
+  const {mhd,kaufdatum,shelfLife} = getDateFromForm('ep');
+  const p = productMap[code]; if(!p) return;
+
+  if(shelfLife && !p.defaultShelfLife){ p.defaultShelfLife = shelfLife; }
+  // Push as separate independent batch with product name and updatedAt
+  inventory.push({ id:uid(), barcode:code, name:p.name, emoji:p.emoji, location, qty, mhd, kaufdatum, shelfLife, updatedAt:Date.now() });
+  persist(); closeM('m-exist-prod');
+  toast(`✅ Charge für ${p.emoji} ${p.name} erfasst`);
+  renderAll();
+}
+
+/* ══ ENTNEHMEN FLOW (BATCH-BASED) ═══════════════════════════════ */
+function openEntnehmen(){
+  document.getElementById('ent-search').value = '';
+  renderEntList(inventory);
+  openM('m-entnehmen');
+  setTimeout(()=>document.getElementById('ent-search').focus(),100);
+}
+
+function filterEnt(){
+  const q = document.getElementById('ent-search').value.toLowerCase().trim();
+  const filtered = q
+    ? inventory.filter(i => i.name.toLowerCase().includes(q) || i.location.toLowerCase().includes(q) || (i.barcode && i.barcode.includes(q)))
+    : inventory;
+  renderEntList(filtered);
+}
+
+function renderEntList(items){
+  const c = document.getElementById('ent-list');
+  c.innerHTML = '';
+  const inStock = items.filter(i => i.qty > 0);
+  if(!inStock.length){
+    c.innerHTML = '<div class="empty-st"><div class="empty-ic">📦</div>Keine passenden Produkte auf Lager</div>';
+    return;
+  }
+
+  // Sort: products with earliest MHD first
+  const sorted = [...inStock].sort((a,b) => (a.mhd||'9999').localeCompare(b.mhd||'9999'));
+
+  // Mark the earliest expiring batch for each product name
+  const seenEarliest = new Set();
+
+  sorted.forEach(batch => {
+    const isFirstForProduct = !seenEarliest.has(batch.barcode || batch.name);
+    if(isFirstForProduct) seenEarliest.add(batch.barcode || batch.name);
+
+    const d = daysUntil(batch.mhd);
+    let mhdLabel = batch.mhd ? `MHD: ${fmtD(batch.mhd)}` : 'Ohne MHD';
+    if(d !== null){
+      if(d < 0) mhdLabel += ` (⚠️ vor ${Math.abs(d)}d abgelaufen)`;
+      else if(d === 0) mhdLabel += ' (⚠️ heute ablaufend)';
+      else if(d <= 7) mhdLabel += ` (⚠️ noch ${d} Tage)`;
+    }
+
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'batch-item' + (isFirstForProduct ? ' earliest' : '');
+    itemDiv.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
+        <span style="font-size:24px">${batch.emoji}</span>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">
+            <span>${batch.name}</span>
+            ${isFirstForProduct ? '<span class="badge b-yel" style="font-size:9px">Ältestes MHD</span>' : ''}
+          </div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:2px">
+            📍 ${batch.location} · 📅 ${mhdLabel} · Vorrat: <strong>${batch.qty}x</strong>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-secondary" onclick="entnehmenBatch('${batch.id}')">1x Entnehmen</button>
+    `;
+    c.appendChild(itemDiv);
+  });
+}
+
+function entnehmenBatch(batchId){
+  const batch = inventory.find(i => i.id === batchId);
+  if(!batch || batch.qty <= 0){ toast('Kein Bestand in dieser Charge','warn'); return; }
+
+  batch.qty -= 1;
+  batch.updatedAt = Date.now();
+  if(batch.qty <= 0){
+    deletedIds[batchId] = Date.now();
+    inventory = inventory.filter(i => i.id !== batchId);
+  }
+
+  // Add to shopping list or increase quantity
+  const existingShop = shopping.find(s => (batch.barcode && s.barcode === batch.barcode) || s.name.toLowerCase() === batch.name.toLowerCase());
+  if(existingShop){
+    existingShop.qty += 1;
+    existingShop.updatedAt = Date.now();
+  } else {
+    shopping.push({ id:uid(), barcode:batch.barcode||null, name:batch.name, emoji:batch.emoji, qty:1, done:false, updatedAt:Date.now() });
+  }
+
+  persist();
+  filterEnt();
+  toast(`🛒 ${batch.emoji} ${batch.name} entnommen & auf Einkaufsliste`);
+  renderAll();
+}
+
+/* ══ EXPIRY LIST (Tab 1) ════════════════════════════════════════ */
+function renderExpiryList(){
+  const c = document.getElementById('expiry-list'), ct = document.getElementById('expiry-count');
+  const relevant = inventory.filter(i => i.qty > 0 && i.mhd && daysUntil(i.mhd) <= 30)
+                            .sort((a,b) => a.mhd.localeCompare(b.mhd));
+  ct.textContent = relevant.length ? `${relevant.length} Chargen` : '';
+  c.innerHTML = '';
+  if(!relevant.length){
+    c.innerHTML = '<div class="empty-st"><div class="empty-ic">✅</div>Alles frisch – keine MHDs in den nächsten 30 Tagen</div>';
+    return;
+  }
+  relevant.forEach(item => {
+    const d = daysUntil(item.mhd);
+    let cls = 'b-grn', lbl = `${d}d`;
+    if(d < 0)       { cls = 'b-red'; lbl = `${Math.abs(d)}d abgel.`; }
+    else if(d === 0){ cls = 'b-red'; lbl = 'Heute!'; }
+    else if(d <= 3) { cls = 'b-red'; lbl = `${d}d`; }
+    else if(d <= 7) { cls = 'b-yel'; lbl = `${d}d`; }
+
+    const isFrozen = item.location === 'Gefrierschrank';
+    const el = document.createElement('div');
+    el.className = 'item-card';
+    const subLine = item.kaufdatum
+      ? `📅 Gekauft: ${fmtD(item.kaufdatum)} · Empf: ${fmtD(item.mhd)}`
+      : `📍 ${item.location} · MHD: ${fmtD(item.mhd)}`;
+    el.innerHTML = `
+      <span class="item-emoji">${item.emoji}</span>
+      <div class="item-info">
+        <div class="item-name">${item.name}</div>
+        <div class="item-meta">${isFrozen?'🥶 ':''}${subLine}</div>
+      </div>
+      <span class="item-qty">${item.qty}×</span>
+      <span class="badge ${cls}">${lbl}</span>
+    `;
+    c.appendChild(el);
+  });
+}
+
+/* ══ SHOPPING LIST & CHECKIN FLOW ═══════════════════════════════ */
+function openAddShoppingModal(){
+  document.getElementById('shop-name').value = '';
+  document.getElementById('shop-qty').value = 1;
+  _shopEmoji = '🛒';
+  buildEPick('shop-epick', ALL_EM, _shopEmoji, em => _shopEmoji = em);
+
+  const sel = document.getElementById('shop-catalog-select');
+  sel.innerHTML = '<option value="">-- Freier Name (kein Katalogprodukt) --</option>';
+  Object.values(productMap).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.barcode;
+    opt.textContent = `${p.emoji} ${p.name} (${p.location})`;
+    sel.appendChild(opt);
+  });
+
+  openM('m-add-shop');
+  setTimeout(()=>document.getElementById('shop-name').focus(),100);
+}
+
+function handleShopCatalogSelect(barcode){
+  if(barcode && productMap[barcode]){
+    const p = productMap[barcode];
+    document.getElementById('shop-name').value = p.name;
+    _shopEmoji = p.emoji;
+    buildEPick('shop-epick', ALL_EM, _shopEmoji, em => _shopEmoji = em);
+  }
+}
+
+function saveManualShoppingItem(){
+  const name = document.getElementById('shop-name').value.trim();
+  const qty = parseInt(document.getElementById('shop-qty').value) || 1;
+  const barcode = document.getElementById('shop-catalog-select').value || null;
+  if(!name){ toast('Bitte Artikelnamen angeben','warn'); return; }
+
+  shopping.push({ id:uid(), barcode, name, emoji:_shopEmoji, qty, done:false });
+  persist(); closeM('m-add-shop');
+  toast(`🛒 ${name} zur Einkaufsliste hinzugefügt`);
+  renderShopping();
+}
+
+function toggleShop(id){
+  const item = shopping.find(s => s.id === id);
+  if(!item) return;
+
+  if(!item.done){
+    // When checking OFF: open dialog to add into inventory!
+    openShopCheckinModal(item);
+  } else {
+    // If unchecking
+    item.done = false;
+    persist();
+    renderShopping();
+  }
+}
+
+function openShopCheckinModal(item){
+  document.getElementById('sci-shop-id').value = item.id;
+  document.getElementById('sci-title').textContent = `📦 ${item.emoji} ${item.name} einlagern`;
+  document.getElementById('sci-qty').value = item.qty || 1;
+  document.getElementById('sci-mhd').value = '';
+  document.getElementById('sci-kaufdate').value = td();
+
+  const isKnownCatalog = item.barcode && productMap[item.barcode];
+  if(isKnownCatalog){
+    const p = productMap[item.barcode];
+    document.getElementById('sci-barcode').value = p.barcode;
+    document.getElementById('sci-loc').value = p.location;
+    document.getElementById('sci-unknown-notice').style.display = 'none';
+    document.getElementById('sci-barcode-grp').style.display = 'none';
+    if(p.defaultShelfLife){
+      document.getElementById('sci-shelf').value = p.defaultShelfLife;
+      setDateMode('sci','kauf');
+    } else {
+      setDateMode('sci','mhd');
+    }
+  } else {
+    // Manually added without catalog product: prompt for barcode
+    document.getElementById('sci-barcode').value = '';
+    document.getElementById('sci-custom-barcode').value = '';
+    document.getElementById('sci-unknown-notice').style.display = 'block';
+    document.getElementById('sci-barcode-grp').style.display = 'block';
+    setDateMode('sci','mhd');
+  }
+
+  openM('m-shop-checkin');
+}
+
+function confirmShopCheckin(){
+  const shopId = document.getElementById('sci-shop-id').value;
+  const item = shopping.find(s => s.id === shopId);
+  if(!item) return;
+
+  let barcode = document.getElementById('sci-barcode').value || document.getElementById('sci-custom-barcode').value.trim();
+  const location = document.getElementById('sci-loc').value;
+  const qty = parseInt(document.getElementById('sci-qty').value) || 1;
+  const {mhd,kaufdatum,shelfLife} = getDateFromForm('sci');
+
+  if(!barcode){
+    // Generate a pseudo code if not scanned
+    barcode = 'MAN_' + Date.now().toString().slice(-8);
+  }
+
+  // Register in catalog if not yet known
+  if(!productMap[barcode]){
+    productMap[barcode] = {
+      barcode, name: item.name, emoji: item.emoji, location, defaultShelfLife: shelfLife || null
+    };
+  }
+
+  // Add batch to inventory
+  inventory.push({ id:uid(), barcode, name:item.name, emoji:item.emoji, location, qty, mhd, kaufdatum, shelfLife });
+
+  // Mark item as done
+  item.done = true;
+  persist();
+  closeM('m-shop-checkin');
+  toast(`✅ ${item.emoji} ${item.name} ins Lager (${location}) gebucht!`);
+  renderAll();
+}
+
+function removeShop(id){
+  deletedIds[id] = Date.now();
+  shopping = shopping.filter(s => s.id !== id);
+  persist();
+  renderShopping();
+}
+function clearDoneShop(){
+  shopping.filter(s => s.done).forEach(s => deletedIds[s.id] = Date.now());
+  shopping = shopping.filter(s => !s.done);
+  persist();
+  renderShopping();
+  toast('✅ Erledigte Einkäufe entfernt');
+}
+
+function renderShopping(){
+  const c = document.getElementById('shopping-list');
+  if(!shopping.length){ c.innerHTML = '<div class="empty-st"><div class="empty-ic">🛒</div>Einkaufsliste leer</div>'; return; }
+  const sorted = [...shopping].sort((a,b) => Number(a.done) - Number(b.done));
+  c.innerHTML = '';
+  sorted.forEach(it => {
+    const el = document.createElement('div');
+    el.className = 'shop-item' + (it.done ? ' done' : '');
+    el.innerHTML = `
+      <div class="shop-chk ${it.done?'done':''}" onclick="toggleShop('${it.id}')" title="Als gekauft markieren & einlagern"></div>
+      <span class="shop-emoji">${it.emoji}</span>
+      <span class="shop-name">${it.name}</span>
+      <span class="shop-qty">×${it.qty}</span>
+      <button class="icon-btn" onclick="removeShop('${it.id}')">✕</button>
+    `;
+    c.appendChild(el);
+  });
+}
+
+/* ══ TASKS & POINT SYSTEM (MULTI-PERSON) ════════════════════════ */
+const RHYTHM_LBL = {
+  daily:'Täglich', every2d:'Alle 2 Tage', twice_weekly:'2× pro Woche',
+  weekly:'Wöchentlich', biweekly:'Alle 2 Wochen', monthly:'Monatlich',
+  quarterly:'Vierteljährlich', biannual:'Halbjährlich'
+};
+
+function advDate(dateStr,rhythm){
+  const d = new Date(dateStr + 'T00:00:00');
+  switch(rhythm){
+    case 'daily':       d.setDate(d.getDate()+1);  break;
+    case 'every2d':     d.setDate(d.getDate()+2);  break;
+    case 'twice_weekly':d.setDate(d.getDate()+4);  break;
+    case 'weekly':      d.setDate(d.getDate()+7);  break;
+    case 'biweekly':    d.setDate(d.getDate()+14); break;
+    case 'monthly':     d.setMonth(d.getMonth()+1);break;
+    case 'quarterly':   d.setMonth(d.getMonth()+3);break;
+    case 'biannual':    d.setMonth(d.getMonth()+6);break;
+  }
+  return d.toISOString().split('T')[0];
+}
+
+function openNewTask(type){
+  const isRec = type === 'recurring';
+  document.getElementById('nt-edit-id').value = '';
+  document.getElementById('nt-type').value = type;
+  document.getElementById('nt-title').textContent = isRec ? '🔁 Wiederkehrende Aufgabe' : '📌 Einmal-Aufgabe';
+  document.getElementById('nt-name').value = '';
+  document.getElementById('nt-pts').value = 5;
+  document.getElementById('nt-start').value = td();
+  document.getElementById('nt-rhythm-grp').style.display = isRec ? '' : 'none';
+  document.getElementById('nt-due-grp').style.display = isRec ? 'none' : '';
+  document.getElementById('nt-due').value = '';
+  document.getElementById('nt-submit-btn').textContent = 'Erstellen';
+  _taskEmoji = '🧹';
+  buildEPick('nt-epick', ALL_EM, _taskEmoji, em => _taskEmoji = em);
+  openM('m-new-task');
+  setTimeout(()=>document.getElementById('nt-name').focus(),100);
+}
+
+function openEditTask(id, type, e){
+  if(e) e.stopPropagation();
+  const isRec = type === 'recurring';
+  const task = isRec ? recurringTasks.find(t=>t.id===id) : onceTasks.find(t=>t.id===id);
+  if(!task) return;
+
+  document.getElementById('nt-edit-id').value = id;
+  document.getElementById('nt-type').value = type;
+  document.getElementById('nt-title').textContent = isRec ? '✏️ Wiederkehrende Aufgabe bearbeiten' : '✏️ Einmal-Aufgabe bearbeiten';
+  document.getElementById('nt-name').value = task.name;
+  document.getElementById('nt-pts').value = task.punkte;
+  _taskEmoji = task.emoji || '🧹';
+  buildEPick('nt-epick', ALL_EM, _taskEmoji, em => _taskEmoji = em);
+
+  if(isRec){
+    document.getElementById('nt-rhythm-grp').style.display = '';
+    document.getElementById('nt-due-grp').style.display = 'none';
+    document.getElementById('nt-rhythm').value = task.rhythm || 'weekly';
+    document.getElementById('nt-start').value = task.naechste || td();
+    document.getElementById('nt-start-lbl').textContent = 'Nächstes Fälligkeitsdatum';
+  } else {
+    document.getElementById('nt-rhythm-grp').style.display = 'none';
+    document.getElementById('nt-due-grp').style.display = '';
+    document.getElementById('nt-due').value = task.faellig || td();
+    document.getElementById('nt-start').value = task.faellig || td();
+    document.getElementById('nt-start-lbl').textContent = 'Fälligkeitsdatum';
+  }
+
+  document.getElementById('nt-submit-btn').textContent = 'Speichern';
+  openM('m-new-task');
+  setTimeout(()=>document.getElementById('nt-name').focus(),100);
+}
+
+function saveTask(){
+  const editId = document.getElementById('nt-edit-id').value;
+  const type   = document.getElementById('nt-type').value;
+  const name   = document.getElementById('nt-name').value.trim();
+  const pts    = parseInt(document.getElementById('nt-pts').value) || 5;
+  const start  = document.getElementById('nt-start').value || td();
+  if(!name){ toast('Bitte Namen eingeben','warn'); return; }
+
+  if(editId){
+    if(type === 'recurring'){
+      const t = recurringTasks.find(x => x.id === editId);
+      if(t){
+        t.name = name; t.emoji = _taskEmoji; t.punkte = pts;
+        t.rhythm = document.getElementById('nt-rhythm').value;
+        t.naechste = start;
+      }
+    } else {
+      const t = onceTasks.find(x => x.id === editId);
+      const due = document.getElementById('nt-due').value || start;
+      if(t){
+        t.name = name; t.emoji = _taskEmoji; t.punkte = pts;
+        t.faellig = due;
+      }
+    }
+    toast(`✅ Aufgabe „${name}" aktualisiert`);
+  } else {
+    if(type === 'recurring'){
+      const rhythm = document.getElementById('nt-rhythm').value;
+      recurringTasks.push({ id:uid(), name, emoji:_taskEmoji, rhythm, punkte:pts, naechste:start, lastCompleted:null });
+    } else {
+      const due = document.getElementById('nt-due').value || start;
+      onceTasks.push({ id:uid(), name, emoji:_taskEmoji, faellig:due, punkte:pts, done:false, doneVon:null, doneAm:null });
+    }
+    toast(`✅ Aufgabe „${name}" erstellt`);
+  }
+  persist(); closeM('m-new-task');
+  renderTasks();
+}
+
+let _ctId=null, _ctType=null, _selectedPersons=new Set();
+
+function openCompleteDialog(id,type){
+  const task = type==='recurring' ? recurringTasks.find(t=>t.id===id) : onceTasks.find(t=>t.id===id);
+  if(!task) return;
+  _ctId = id; _ctType = type;
+  _selectedPersons.clear();
+
+  document.getElementById('ct-title').textContent = `${task.emoji} ${task.name} (+${task.punkte} Pkt.)`;
+  document.getElementById('ct-id').value = id;
+  document.getElementById('ct-postpone').value = task.naechste || task.faellig || td();
+
+  // Render multi-person selectable buttons
+  const grid = document.getElementById('ct-person-grid');
+  grid.innerHTML = '';
+  persons.forEach(p => {
+    const btn = document.createElement('div');
+    btn.className = 'pm-btn';
+    btn.innerHTML = `<span class="pm-av">${p.emoji}</span><span class="pm-name">${p.name}</span>`;
+    btn.onclick = () => {
+      if(_selectedPersons.has(p.id)){
+        _selectedPersons.delete(p.id);
+        btn.classList.remove('sel');
+      } else {
+        _selectedPersons.add(p.id);
+        btn.classList.add('sel');
+      }
+    };
+    grid.appendChild(btn);
+  });
+
+  openM('m-complete');
+}
+
+function submitCompleteTask(){
+  const id = _ctId, type = _ctType;
+  if(!id) return;
+  if(_selectedPersons.size === 0){
+    toast('Bitte mindestens eine Person auswählen!','warn');
+    return;
+  }
+
+  const chosenIds = Array.from(_selectedPersons);
+  let taskPts = 0, taskName = '', taskEmoji = '';
+
+  if(type === 'recurring'){
+    const t = recurringTasks.find(t => t.id === id); if(!t) return;
+    taskPts = t.punkte; taskName = t.name; taskEmoji = t.emoji;
+    t.lastCompleted = td();
+    t.naechste = advDate(t.naechste && t.naechste >= td() ? t.naechste : td(), t.rhythm);
+  } else {
+    const t = onceTasks.find(t => t.id === id); if(!t) return;
+    taskPts = t.punkte; taskName = t.name; taskEmoji = t.emoji;
+    t.done = true; t.doneVon = chosenIds.join(', '); t.doneAm = td();
+  }
+
+  // Award points to all selected participants
+  chosenIds.forEach(pid => {
+    points[pid] = (points[pid] || 0) + taskPts;
+  });
+
+  completionLog.unshift({
+    id: uid(), taskId: id, taskName, taskEmoji, type,
+    persons: chosenIds, pts: taskPts, date: td()
+  });
+
+  persist(); closeM('m-complete');
+  const names = chosenIds.map(pid => (persons.find(p=>p.id===pid)||{}).name || pid).join(' & ');
+  toast(`🏆 +${taskPts} Punkte für ${names}!`);
+  renderAll();
+}
+
+function postponeTask(){
+  const nd = document.getElementById('ct-postpone').value;
+  if(!nd){ toast('Bitte Datum wählen','warn'); return; }
+  const id = _ctId, type = _ctType;
+  if(type === 'recurring'){
+    const t = recurringTasks.find(t => t.id === id); if(t) t.naechste = nd;
+  } else {
+    const t = onceTasks.find(t => t.id === id); if(t) t.faellig = nd;
+  }
+  persist(); closeM('m-complete');
+  toast(`📅 Aufgabe verschoben auf ${fmtD(nd)}`,'warn');
+  renderTasks();
+}
+
+function deleteTask(id,type,e){
+  e.stopPropagation();
+  deletedIds[id] = Date.now();
+  if(type === 'recurring') recurringTasks = recurringTasks.filter(t => t.id !== id);
+  else onceTasks = onceTasks.filter(t => t.id !== id);
+  persist(); renderTasks();
+  toast('🗑️ Aufgabe gelöscht','warn');
+}
+
+/* ══ QUICK TILES FOR TASKS ══════════════════════════════════════ */
+let _kachelEditMode = false;
+function toggleKachelEdit(){
+  _kachelEditMode = !_kachelEditMode;
+  document.getElementById('kacheln-grid').classList.toggle('kachel-edit-mode', _kachelEditMode);
+  document.getElementById('kachel-edit-btn').textContent = _kachelEditMode ? '✓ Fertig' : '✎ Bearbeiten';
+}
+function openNewKachel(editId){
+  const tile = editId ? quickTiles.find(t => t.id === editId) : null;
+  document.getElementById('kachel-edit-id').value = editId || '';
+  document.getElementById('kachel-name').value = tile ? tile.name : '';
+  document.getElementById('kachel-pts').value = tile ? tile.punkte : 3;
+  _kachelEmoji = tile ? tile.emoji : '🗑️';
+  document.getElementById('kachel-modal-title').textContent = tile ? '✏️ Schnellaufgabe bearbeiten' : '🚀 Schnellaufgabe konfigurieren';
+  document.getElementById('kachel-submit-btn').textContent = tile ? 'Speichern' : 'Kachel erstellen';
+  buildEPick('kachel-epick', ALL_EM, _kachelEmoji, em => _kachelEmoji = em);
+  openM('m-new-kachel');
+  setTimeout(()=>document.getElementById('kachel-name').focus(),100);
+}
+function saveKachel(){
+  const editId = document.getElementById('kachel-edit-id').value;
+  const name   = document.getElementById('kachel-name').value.trim();
+  const pts    = parseInt(document.getElementById('kachel-pts').value) || 3;
+  if(!name){ toast('Bitte Namen eingeben','warn'); return; }
+
+  if(editId){
+    const t = quickTiles.find(x => x.id === editId);
+    if(t){ t.name = name; t.punkte = pts; t.emoji = _kachelEmoji; }
+    toast(`✅ Schnellaufgabe „${name}" aktualisiert`);
+  } else {
+    quickTiles.push({ id:uid(), emoji:_kachelEmoji, name, punkte:pts });
+    toast(`✅ Schnellaufgabe „${name}" erstellt`);
+  }
+  persist(); closeM('m-new-kachel'); renderKacheln();
+}
+function fireKachel(tile){
+  if(_kachelEditMode){ openNewKachel(tile.id); return; }
+  onceTasks.push({ id:uid(), name:tile.name, emoji:tile.emoji, faellig:td(), punkte:tile.punkte, done:false, doneVon:null, doneAm:null });
+  persist();
+  toast(`📌 ${tile.emoji} ${tile.name} hinzugefügt`);
+  renderTasks();
+}
+function deleteKachel(id,e){
+  e.stopPropagation();
+  quickTiles = quickTiles.filter(t => t.id !== id);
+  persist(); renderKacheln();
+}
+function renderKacheln(){
+  const g = document.getElementById('kacheln-grid'); g.innerHTML = '';
+  quickTiles.forEach(tile => {
+    const k = document.createElement('div');
+    k.className = 'kachel';
+    k.title = _kachelEditMode ? `Klicken zum Bearbeiten: ${tile.name}` : `${tile.name} (+${tile.punkte} Pkt.)`;
+    k.textContent = tile.emoji;
+    k.onclick = () => {
+      if(_kachelEditMode) openNewKachel(tile.id);
+      else fireKachel(tile);
+    };
+    const del = document.createElement('div');
+    del.className = 'kachel-del'; del.textContent = '×';
+    del.onclick = e => deleteKachel(tile.id,e);
+    k.appendChild(del);
+    g.appendChild(k);
+  });
+  const add = document.createElement('div');
+  add.className = 'kachel-add'; add.textContent = '＋'; add.title = 'Neue Schnellaufgabe';
+  add.onclick = () => openNewKachel();
+  g.appendChild(add);
+}
+
+/* ══ RENDER TASKS & BREAKDOWN ═══════════════════════════════════ */
+function renderTasks(){
+  renderRecurring();
+  renderOnce();
+  renderDoneToday();
+  renderPointsBoard();
+  renderMonthHistory();
+  renderKacheln();
+}
+
+function renderRecurring(){
+  const c = document.getElementById('recurring-list'), ct = document.getElementById('rec-count');
+  const todayStr = td();
+  const sorted = [...recurringTasks].sort((a,b) => (a.naechste||'z').localeCompare(b.naechste||'z'));
+  ct.textContent = sorted.length ? `${sorted.length} Aufgaben` : '';
+  c.innerHTML = '';
+  if(!sorted.length){ c.innerHTML = '<div class="empty-st"><div class="empty-ic">🔁</div>Keine wiederkehrenden Aufgaben</div>'; return; }
+  sorted.forEach(task => {
+    const doneToday = task.lastCompleted === todayStr;
+    const overdue = !doneToday && task.naechste && task.naechste < todayStr;
+    const el = document.createElement('div');
+    el.className = 'task-card' + (doneToday ? ' today-done' : overdue ? ' overdue' : '');
+    if(!doneToday) el.onclick = () => openCompleteDialog(task.id,'recurring');
+
+    const dLabel = doneToday
+      ? `✓ Heute erledigt · Wieder am ${fmtD(task.naechste)}`
+      : task.naechste ? (task.naechste === todayStr ? 'Heute fällig' : overdue ? `Überfällig seit ${fmtD(task.naechste)}` : `Fällig: ${fmtD(task.naechste)}`) : '–';
+
+    el.innerHTML = `
+      <span class="t-emoji">${task.emoji}</span>
+      <div class="t-info"><div class="t-name">${task.name}</div><div class="t-sub">${RHYTHM_LBL[task.rhythm]||task.rhythm} · ${dLabel}</div></div>
+      <span class="t-pts">★${task.punkte}</span>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-xs btn-secondary" onclick="openEditTask('${task.id}','recurring',event)" title="Bearbeiten">✏️</button>
+        <button class="btn btn-xs btn-danger" onclick="deleteTask('${task.id}','recurring',event)" title="Löschen">✕</button>
+      </div>
+    `;
+    c.appendChild(el);
+  });
+}
+
+function renderOnce(){
+  const c = document.getElementById('once-list'), ct = document.getElementById('once-count');
+  const pending = onceTasks.filter(t => !t.done).sort((a,b) => (a.faellig||'z').localeCompare(b.faellig||'z'));
+  ct.textContent = pending.length ? `${pending.length} offen` : '';
+  c.innerHTML = '';
+  if(!pending.length){ c.innerHTML = '<div class="empty-st"><div class="empty-ic">📌</div>Keine offenen Aufgaben</div>'; return; }
+  const todayStr = td();
+  pending.forEach(task => {
+    const overdue = task.faellig && task.faellig < todayStr;
+    const el = document.createElement('div');
+    el.className = 'task-card' + (overdue ? ' overdue' : '');
+    el.onclick = () => openCompleteDialog(task.id,'once');
+    const dLabel = task.faellig ? (task.faellig === todayStr ? 'Heute fällig' : overdue ? `Überfällig seit ${fmtD(task.faellig)}` : `Fällig: ${fmtD(task.faellig)}`) : '–';
+    el.innerHTML = `
+      <span class="t-emoji">${task.emoji}</span>
+      <div class="t-info"><div class="t-name">${task.name}</div><div class="t-sub">${dLabel}</div></div>
+      <span class="t-pts">★${task.punkte}</span>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-xs btn-secondary" onclick="openEditTask('${task.id}','once',event)" title="Bearbeiten">✏️</button>
+        <button class="btn btn-xs btn-danger" onclick="deleteTask('${task.id}','once',event)" title="Löschen">✕</button>
+      </div>
+    `;
+    c.appendChild(el);
+  });
+}
+
+function renderDoneToday(){
+  const c = document.getElementById('done-today-list'), ct = document.getElementById('done-today-count');
+  const todayLog = completionLog.filter(e => e.date === td());
+  ct.textContent = todayLog.length ? `${todayLog.length} erledigt` : '';
+  c.innerHTML = '';
+  if(!todayLog.length){ c.innerHTML = '<div class="empty-st" style="padding:14px"><div class="empty-ic" style="font-size:20px">🌟</div>Heute noch keine Aufgaben erledigt</div>'; return; }
+
+  todayLog.forEach(entry => {
+    const typeLabel = entry.type === 'recurring' ? '🔁' : '📌';
+    const names = (entry.persons || [entry.person]).map(pid => {
+      const p = persons.find(x => x.id === pid);
+      return p ? `${p.emoji} ${p.name}` : pid;
+    }).join(' + ');
+
+    const el = document.createElement('div');
+    el.className = 'done-entry';
+    el.innerHTML = `
+      <span class="done-emoji">${entry.taskEmoji}</span>
+      <div class="done-info">
+        <div class="done-name">${entry.taskName} <span style="font-size:10px;color:var(--tx2)">${typeLabel}</span></div>
+        <div class="done-meta">${names} · +${entry.pts} Pkt.</div>
+      </div>
+      <span class="badge b-grn">+${entry.pts}</span>
+    `;
+    c.appendChild(el);
+  });
+}
+
+function renderPointsBoard(){
+  const b = document.getElementById('pts-board'), ml = document.getElementById('pts-month-lbl');
+  ml.textContent = fmtMK(points.monat);
+  const sorted = [...persons].sort((a,b) => (points[b.id]||0) - (points[a.id]||0));
+  b.innerHTML = '';
+  sorted.forEach((p,i) => {
+    const el = document.createElement('div');
+    el.className = 'pts-person';
+    el.title = 'Klicke für detaillierte Aufschlüsselung der Aufgaben';
+    el.onclick = () => openPersonBreakdown(p.id);
+
+    const medal = i===0&&(points[p.id]||0)>0?'🥇 ':i===1&&(points[sorted[0].id]||0)>0?'🥈 ':i===2&&(points[sorted[0].id]||0)>0?'🥉 ':'';
+    el.innerHTML = `
+      <div class="pts-av">${p.emoji}</div>
+      <span class="pts-name">${medal}${p.name}</span>
+      <span class="pts-score">${points[p.id] || 0}</span>
+      <span style="font-size:10px;color:var(--tx2)">Pkt.</span>
+    `;
+    b.appendChild(el);
+  });
+}
+
+function renderMonthHistory(){
+  const c = document.getElementById('month-history');
+  if(!monthHistory.length){ c.innerHTML = '<div class="empty-st"><div class="empty-ic">📊</div>Noch keine vergangenen Monate</div>'; return; }
+  const tbl = document.createElement('table');
+  tbl.className = 'hist-tbl';
+
+  let ths = '<th>Monat</th>';
+  persons.forEach(p => { ths += `<th>${p.emoji} ${p.name}</th>`; });
+  tbl.innerHTML = `<thead><tr>${ths}</tr></thead>`;
+
+  const tbody = document.createElement('tbody');
+  monthHistory.forEach(e => {
+    const maxVal = Math.max(...persons.map(p => e[p.id] || 0));
+    let tds = `<td style="font-weight:600">${fmtMK(e.monat)}</td>`;
+    persons.forEach(p => {
+      const val = e[p.id] || 0;
+      tds += `<td class="${val===maxVal&&maxVal>0?'win':''}">${val}</td>`;
+    });
+    const tr = document.createElement('tr');
+    tr.innerHTML = tds;
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  c.innerHTML = '';
+  c.appendChild(tbl);
+}
+
+function openPersonBreakdown(personId){
+  const p = persons.find(x => x.id === personId);
+  if(!p) return;
+
+  document.getElementById('pl-title').textContent = `📋 Aufgaben-Aufschlüsselung: ${p.emoji} ${p.name}`;
+  const c = document.getElementById('pl-content');
+  c.innerHTML = '';
+
+  const entries = completionLog.filter(e => (e.persons && e.persons.includes(personId)) || e.person === personId);
+  const adjustments = pointAdjustments.filter(a => a.personId === personId);
+
+  if(!entries.length && !adjustments.length){
+    c.innerHTML = '<div class="empty-st"><div class="empty-ic">🌱</div>Noch keine Aktivitäten für diese Person verzeichnet.</div>';
+    openM('m-person-log');
+    return;
+  }
+
+  // Adjustments section if any
+  if(adjustments.length){
+    const adjTitle = document.createElement('div');
+    adjTitle.style.cssText = 'font-size:11px;font-weight:700;color:var(--tx2);margin:8px 0 4px;text-transform:uppercase';
+    adjTitle.textContent = '⚡ Manuelle Punkteanpassungen';
+    c.appendChild(adjTitle);
+
+    adjustments.forEach(a => {
+      const d = document.createElement('div');
+      d.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--rs);margin-bottom:5px;font-size:12px';
+      d.innerHTML = `
+        <div>
+          <div style="font-weight:600">${a.reason || 'Manuelle Anpassung'}</div>
+          <div style="font-size:10px;color:var(--tx2)">📅 ${fmtD(a.date)}</div>
+        </div>
+        <span class="badge ${a.delta>=0?'b-grn':'b-red'}">${a.delta>=0?'+':''}${a.delta} Pkt.</span>
+      `;
+      c.appendChild(d);
+    });
+  }
+
+  // Task entries
+  if(entries.length){
+    const taskTitle = document.createElement('div');
+    taskTitle.style.cssText = 'font-size:11px;font-weight:700;color:var(--tx2);margin:12px 0 4px;text-transform:uppercase';
+    taskTitle.textContent = '✅ Erledigte Aufgaben';
+    c.appendChild(taskTitle);
+
+    entries.forEach(e => {
+      const coWorkers = (e.persons || [e.person])
+        .filter(id => id !== personId)
+        .map(id => (persons.find(x => x.id === id)||{}).name || id);
+
+      const coLabel = coWorkers.length ? ` · Gemeinsam mit: <strong>${coWorkers.join(', ')}</strong>` : '';
+
+      const d = document.createElement('div');
+      d.className = 'item-card';
+      d.innerHTML = `
+        <span style="font-size:20px">${e.taskEmoji}</span>
+        <div class="item-info">
+          <div class="item-name">${e.taskName}</div>
+          <div class="item-meta">📅 ${fmtD(e.date)}${coLabel}</div>
+        </div>
+        <span class="badge b-grn">+${e.pts} Pkt.</span>
+      `;
+      c.appendChild(d);
+    });
+  }
+
+  openM('m-person-log');
+}
+
+/* ══ 3. PRODUKTE TAB LOGIC ═════════════════════════════════════ */
+const STORAGE_LOCATIONS = [
+  { name: 'Kühlschrank', emoji: '🧊' },
+  { name: 'Gefrierschrank', emoji: '🥶' },
+  { name: 'Arbeitsplatte', emoji: '🍳' },
+  { name: 'Kleine Kammer', emoji: '📦' },
+  { name: 'Große Kammer', emoji: '🏚️' },
+  { name: 'Süßschrank', emoji: '🍬' }
+];
+
+function renderProdukteTab(){
+  renderStorageLocations();
+  renderCatalogList();
+}
+
+function renderStorageLocations(){
+  const c = document.getElementById('storage-locations-list');
+  const totalCountEl = document.getElementById('stock-total-count');
+  c.innerHTML = '';
+
+  const totalItems = inventory.reduce((acc,i) => acc + (i.qty||0), 0);
+  totalCountEl.textContent = `${totalItems} Artikel insgesamt auf Lager`;
+
+  STORAGE_LOCATIONS.forEach(loc => {
+    const locBatches = inventory.filter(i => i.location === loc.name && i.qty > 0);
+    const locQty = locBatches.reduce((acc,b) => acc + b.qty, 0);
+
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'loc-group';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'loc-hdr';
+    hdr.innerHTML = `
+      <span>${loc.emoji} ${loc.name}</span>
+      <span class="loc-count">${locQty} Artikel</span>
+    `;
+
+    const itemsDiv = document.createElement('div');
+    itemsDiv.className = 'loc-items';
+
+    if(locBatches.length === 0){
+      itemsDiv.innerHTML = '<span style="font-size:11px;color:var(--tx2)">Leer</span>';
+    } else {
+      // Sort batches by MHD
+      locBatches.sort((a,b) => (a.mhd||'9999').localeCompare(b.mhd||'9999'));
+      locBatches.forEach(batch => {
+        const d = daysUntil(batch.mhd);
+        let mhdInfo = batch.mhd ? `MHD: ${fmtD(batch.mhd)}` : 'Ohne MHD';
+        if(d !== null && d <= 7){
+          mhdInfo += ` (${d<=0?'Ablauf heute/vorbei!':d+' Tage'})`;
+        }
+
+        const bdiv = document.createElement('div');
+        bdiv.className = 'batch-item';
+        bdiv.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+            <span style="font-size:20px">${batch.emoji}</span>
+            <div style="min-width:0;flex:1">
+              <div style="font-size:12px;font-weight:700">${batch.name}</div>
+              <div style="font-size:10px;color:var(--tx2)">📅 ${mhdInfo}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="tag">${batch.qty}x</span>
+            <button class="btn btn-xs btn-secondary" onclick="entnehmenBatch('${batch.id}')">Entnehmen</button>
+          </div>
+        `;
+        itemsDiv.appendChild(bdiv);
+      });
+    }
+
+    groupDiv.appendChild(hdr);
+    groupDiv.appendChild(itemsDiv);
+    c.appendChild(groupDiv);
+  });
+}
+
+function renderCatalogList(){
+  const c = document.getElementById('catalog-list');
+  const q = (document.getElementById('catalog-search').value||'').trim().toLowerCase();
+  c.innerHTML = '';
+
+  let list = Object.values(productMap);
+  if(q){
+    list = list.filter(p => p.name.toLowerCase().includes(q) || p.location.toLowerCase().includes(q) || (p.barcode && p.barcode.toLowerCase().includes(q)));
+  }
+
+  if(list.length === 0){
+    c.innerHTML = '<div class="empty-st"><div class="empty-ic">📚</div>Keine Produkte im Katalog gefunden</div>';
+    return;
+  }
+
+  list.sort((a,b) => a.name.localeCompare(b.name)).forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'catalog-item';
+    el.innerHTML = `
+      <span class="cat-emoji">${p.emoji}</span>
+      <div class="cat-info">
+        <div class="cat-name">${p.name}</div>
+        <div class="cat-sub">
+          <span>📍 ${p.location}</span>
+          ${p.defaultShelfLife ? `<span>⏳ Haltbarkeit: ${p.defaultShelfLife} Tage</span>` : ''}
+          <span style="font-family:monospace;color:var(--acc2)">🏷️ ${p.barcode}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-xs btn-secondary" onclick="openEditCatalogProductModal('${p.barcode}')">✎ Bearbeiten</button>
+        <button class="btn btn-xs btn-danger" onclick="deleteCatalogProduct('${p.barcode}')">✕</button>
+      </div>
+    `;
+    c.appendChild(el);
+  });
+}
+
+function openCreateCatalogProductModal(){
+  document.getElementById('ce-title').textContent = '➕ Neues Katalog-Produkt';
+  document.getElementById('ce-original-barcode').value = '';
+  document.getElementById('ce-barcode').value = '';
+  document.getElementById('ce-name').value = '';
+  document.getElementById('ce-loc').value = 'Kühlschrank';
+  document.getElementById('ce-shelf').value = '7';
+  _catEmoji = '🛒';
+  buildEPick('ce-epick', ALL_EM, _catEmoji, em => _catEmoji = em);
+  openM('m-catalog-edit');
+  setTimeout(()=>document.getElementById('ce-name').focus(),100);
+}
+
+function openEditCatalogProductModal(barcode){
+  const p = productMap[barcode];
+  if(!p) return;
+  document.getElementById('ce-title').textContent = `✎ ${p.emoji} ${p.name} bearbeiten`;
+  document.getElementById('ce-original-barcode').value = p.barcode;
+  document.getElementById('ce-barcode').value = p.barcode;
+  document.getElementById('ce-name').value = p.name;
+  document.getElementById('ce-loc').value = p.location;
+  document.getElementById('ce-shelf').value = p.defaultShelfLife || '';
+  _catEmoji = p.emoji;
+  buildEPick('ce-epick', ALL_EM, _catEmoji, em => _catEmoji = em);
+  openM('m-catalog-edit');
+}
+
+function saveCatalogProductEdit(){
+  const origBarcode = document.getElementById('ce-original-barcode').value;
+  const newBarcode  = document.getElementById('ce-barcode').value.trim();
+  const name        = document.getElementById('ce-name').value.trim();
+  const location    = document.getElementById('ce-loc').value;
+  const shelf       = parseInt(document.getElementById('ce-shelf').value) || null;
+
+  if(!name){ toast('Bitte Produktnamen angeben','warn'); return; }
+  if(!newBarcode){ toast('Bitte Barcode/Code angeben','warn'); return; }
+
+  if(origBarcode && origBarcode !== newBarcode){
+    delete productMap[origBarcode];
+    // update inventory batches barcodes
+    inventory.forEach(i => { if(i.barcode === origBarcode) i.barcode = newBarcode; });
+    shopping.forEach(s => { if(s.barcode === origBarcode) s.barcode = newBarcode; });
+  }
+
+  productMap[newBarcode] = { barcode: newBarcode, name, emoji: _catEmoji, location, defaultShelfLife: shelf };
+
+  // Update existing inventory batches with new name/emoji
+  inventory.forEach(i => {
+    if(i.barcode === newBarcode){ i.name = name; i.emoji = _catEmoji; }
+  });
+
+  persist();
+  closeM('m-catalog-edit');
+  toast(`✅ Katalogprodukt „${name}" gespeichert`);
+  renderAll();
+}
+
+function deleteCatalogProduct(barcode){
+  const p = productMap[barcode];
+  if(!p) return;
+  if(confirm(`Möchtest du „${p.name}" wirklich aus dem Katalog löschen? (Vorhandene Bestände bleiben erhalten)`)){
+    deletedIds['PROD_' + barcode] = Date.now();
+    delete productMap[barcode];
+    persist();
+    renderCatalogList();
+    toast(`🗑️ Produkt gelöscht`);
+  }
+}
+
+/* ══ 4. PERSONEN TAB LOGIC ═════════════════════════════════════ */
+function renderPersonenTab(){
+  const grid = document.getElementById('person-cards-grid');
+  grid.innerHTML = '';
+
+  let totalPtsMonth = 0;
+  let totalTasksAll = completionLog.length;
+
+  persons.forEach(p => {
+    const ptsThisMonth = points[p.id] || 0;
+    totalPtsMonth += ptsThisMonth;
+
+    // Calculate total all-time points
+    let allTimePts = ptsThisMonth;
+    monthHistory.forEach(h => { allTimePts += (h[p.id] || 0); });
+
+    // Count tasks completed by this person
+    const tasksCount = completionLog.filter(e => (e.persons && e.persons.includes(p.id)) || e.person === p.id).length;
+
+    const card = document.createElement('div');
+    card.className = 'pcard';
+    card.innerHTML = `
+      <div class="pcard-top">
+        <div class="pcard-av">${p.emoji}</div>
+        <div class="pcard-info">
+          <div class="pcard-name">${p.name}</div>
+          <div class="pcard-role">Haushaltsmitglied</div>
+        </div>
+        <button class="btn btn-xs btn-ghost" onclick="openEditPersonModal('${p.id}')">✎</button>
+      </div>
+
+      <div class="pcard-stats">
+        <div class="stat-box">
+          <div class="stat-val">${ptsThisMonth}</div>
+          <div class="stat-lbl">Diesen Monat</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" style="color:var(--yel)">${allTimePts}</div>
+          <div class="stat-lbl">Gesamtpunkte</div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;color:var(--tx2);display:flex;justify-content:space-between">
+        <span>Erledigte Aufgaben:</span>
+        <strong style="color:var(--tx)">${tasksCount}</strong>
+      </div>
+
+      <div class="pcard-acts">
+        <button class="btn btn-sm btn-secondary" style="flex:1" onclick="openAdjustPtsModal('${p.id}')">⚡ +/- Punkte</button>
+        <button class="btn btn-sm btn-secondary" style="flex:1" onclick="openPersonBreakdown('${p.id}')">📋 Aufgaben</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  document.getElementById('stat-all-pts').textContent = totalPtsMonth;
+  document.getElementById('stat-all-tasks').textContent = totalTasksAll;
+  document.getElementById('stat-all-members').textContent = persons.length;
+}
+
+function openNewPersonModal(){
+  document.getElementById('pe-title').textContent = '➕ Person hinzufügen';
+  document.getElementById('pe-person-id').value = '';
+  document.getElementById('pe-name').value = '';
+  _userEmoji = '🧑';
+  buildEPick('pe-epick', USER_EM, _userEmoji, em => _userEmoji = em);
+  openM('m-person-edit');
+  setTimeout(()=>document.getElementById('pe-name').focus(),100);
+}
+
+function openEditPersonModal(id){
+  const p = persons.find(x => x.id === id);
+  if(!p) return;
+  document.getElementById('pe-title').textContent = `✎ ${p.name} bearbeiten`;
+  document.getElementById('pe-person-id').value = p.id;
+  document.getElementById('pe-name').value = p.name;
+  _userEmoji = p.emoji;
+  buildEPick('pe-epick', USER_EM, _userEmoji, em => _userEmoji = em);
+  openM('m-person-edit');
+}
+
+function savePersonEdit(){
+  const id   = document.getElementById('pe-person-id').value;
+  const name = document.getElementById('pe-name').value.trim();
+  if(!name){ toast('Bitte Namen eingeben','warn'); return; }
+
+  if(id){
+    const p = persons.find(x => x.id === id);
+    if(p){ p.name = name; p.emoji = _userEmoji; }
+  } else {
+    const newId = name.toLowerCase().replace(/[^a-z0-9]/g,'') + '_' + uid().slice(0,4);
+    persons.push({ id: newId, name, emoji: _userEmoji });
+    points[newId] = 0;
+  }
+  persist(); closeM('m-person-edit');
+  toast(`✅ Person gespeichert`);
+  renderAll();
+}
+
+function openAdjustPtsModal(personId){
+  const p = persons.find(x => x.id === personId);
+  if(!p) return;
+  document.getElementById('ap-person-id').value = p.id;
+  document.getElementById('ap-title').textContent = `⚡ Punkte für ${p.emoji} ${p.name} anpassen`;
+  document.getElementById('ap-delta').value = '';
+  document.getElementById('ap-reason').value = '';
+  openM('m-adjust-pts');
+  setTimeout(()=>document.getElementById('ap-delta').focus(),100);
+}
+
+function savePointAdjustment(){
+  const personId = document.getElementById('ap-person-id').value;
+  const delta = parseInt(document.getElementById('ap-delta').value);
+  const reason = document.getElementById('ap-reason').value.trim();
+
+  if(isNaN(delta) || delta === 0){ toast('Bitte eine gültige Zahl ungleich 0 angeben','warn'); return; }
+  if(!reason){ toast('Bitte eine Begründung eingeben','warn'); return; }
+
+  points[personId] = (points[personId] || 0) + delta;
+  pointAdjustments.unshift({
+    id: uid(), personId, delta, reason, date: td()
+  });
+
+  persist(); closeM('m-adjust-pts');
+  toast(`✅ ${delta>=0?'+':''}${delta} Punkte gebucht`);
+  renderAll();
+}
+
+/* ══ DATABASE IMPORT / EXPORT / ROBUST CLOUD SYNC ═══════════════ */
+function exportDatabase(){
+  const data = getAllDatabaseObject();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `haushalts_manager_backup_${td()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('💾 Datenbank erfolgreich exportiert!');
+}
+
+function triggerImportDatabase(){
+  document.getElementById('db-file-input').click();
+}
+
+function handleImportDatabase(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try {
+      const data = JSON.parse(evt.target.result);
+      if(confirm('Möchtest du diese Datenbank wirklich laden? Alle aktuellen lokalen Daten werden überschrieben.')){
+        loadDatabaseObject(data);
+        toast('📂 Datenbank erfolgreich geladen!');
+      }
+    } catch(err){
+      toast('Fehler beim Einlesen der Datei: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function confirmResetDatabase(){
+  if(confirm('ACHTUNG: Möchtest du wirklich eine neue, leere Datenbank erstellen? Alle Bestände, Produkte und Aufgaben werden zurückgesetzt!')){
+    productMap = {};
+    inventory = [];
+    shopping = [];
+    recurringTasks = [];
+    onceTasks = [];
+    completionLog = [];
+    pointAdjustments = [];
+    points = { monat: mk() };
+    persons.forEach(p => { points[p.id] = 0; });
+    monthHistory = [];
+    persist();
+    renderAll();
+    toast('✨ Neue Datenbank erstellt!');
+  }
+}
+
+function openCloudSyncModal(){
+  document.getElementById('cs-url-input').value = cloudSyncUrl || '';
+  openM('m-cloud-sync');
+}
+
+function saveCloudSyncUrl(){
+  const rawUrl = document.getElementById('cs-url-input').value;
+  cloudSyncUrl = cleanGoogleUrl(rawUrl);
+  persist(true);
+  closeM('m-cloud-sync');
+  updateSyncStatusUI('online');
+  toast('✅ Google Sheets URL gespeichert');
+  // Attempt initial sync
+  queueLiveSync();
+}
+
+/* Fallback via dynamic script tag (JSONP) to bypass all CORS limitations */
+function fetchViaJsonp(url){
+  return new Promise((resolve, reject) => {
+    const cbName = 'gs_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+    const script = document.createElement('script');
+    const sep = url.includes('?') ? '&' : '?';
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Zeitüberschreitung beim Laden. Bitte Internet & Berechtigungen prüfen.'));
+    }, 10000);
+
+    function cleanup(){
+      clearTimeout(timeout);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[cbName] = function(data){
+      cleanup();
+      try {
+        const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+        resolve(parsed);
+      } catch(e){
+        resolve(data);
+      }
+    };
+
+    script.src = `${url}${sep}callback=${cbName}&_t=${Date.now()}`;
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('Konnte Verbindung zu Google Script nicht herstellen.'));
+    };
+
+    document.head.appendChild(script);
+  });
+}
+
+async function syncDownloadGoogleSheet(isManual = true){
+  let url = cleanGoogleUrl(document.getElementById('cs-url-input').value || cloudSyncUrl);
+  if(!url){
+    if(isManual) toast('Bitte zuerst die Web-App URL eingeben', 'warn');
+    return;
+  }
+  if(url.includes('docs.google.com/spreadsheets/')){
+    alert('Achtung: Du hast die Tabellen-Adresse (docs.google.com/spreadsheets/...) eingegeben!\n\nFür den Sync wird die Web-App-URL aus Apps Script benötigt:\n1. Öffne die Tabelle → Erweiterungen → Apps Script\n2. Klicke auf Bereitstellen → Neue Bereitstellung\n3. Wähle Typ "Web-App", Zugriff: "Jeder"\n4. Kopiere die Web-App-URL (sie endet auf /exec)');
+    return;
+  }
+
+  cloudSyncUrl = url;
+  sv('cloudSyncUrl', cloudSyncUrl);
+
+  // If local changes are pending to be uploaded, do not overwrite with stale cloud data
+  if(_liveSyncTimer !== null){
+    if(!isManual) return;
+    clearTimeout(_liveSyncTimer);
+    _liveSyncTimer = null;
+    await executeLiveSave();
+  }
+
+  if(isManual) toast('⏳ Lade Daten aus Google Sheets…');
+  updateSyncStatusUI('syncing');
+
+  let fetchedData = null;
+
+  // 1. Attempt standard fetch
+  try {
+    const res = await fetch(url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now(), {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'Accept': 'application/json, text/plain, */*' }
+    });
+    if(res.ok){
+      const text = await res.text();
+      if(text && text.trim()){
+        fetchedData = JSON.parse(text);
+      }
+    }
+  } catch(fetchErr) {
+    console.warn('Standard fetch failed, trying JSONP fallback:', fetchErr);
+  }
+
+  // 2. Fallback to JSONP (works in browsers even when redirects fail CORS)
+  if(!fetchedData){
+    try {
+      fetchedData = await fetchViaJsonp(url);
+    } catch(jsonpErr){
+      console.warn('JSONP fallback error:', jsonpErr);
+    }
+  }
+
+  if(fetchedData && typeof fetchedData === 'object' && (fetchedData.inventory || fetchedData.productMap || fetchedData.persons)){
+    mergeDatabaseObject(fetchedData);
+    updateSyncStatusUI('online');
+    if(isManual) toast('☁️ Erfolgreich synchronisiert!');
+  } else {
+    updateSyncStatusUI('error');
+    if(isManual){
+      alert('Fehler beim Laden aus Google Sheets: Failed to fetch\n\n' +
+            'Mögliche Ursachen & Lösungen:\n' +
+            '1. Bereitstellung: Bei "Wer hat Zugriff" muss "Jeder" (Anyone) gewählt sein! (Nicht "Nur ich")\n' +
+            '2. Die URL muss auf "/exec" enden (nicht "/edit").\n' +
+            '3. Nach Code-Änderungen in Apps Script immer auf "Bereitstellen → Bereitstellungen verwalten → Bearbeiten → Neue Version" klicken.\n' +
+            '4. Verwende den Code aus der Anleitung im Fenster.');
+    }
+  }
+}
+
+async function syncUploadGoogleSheetManually(){
+  let url = cleanGoogleUrl(document.getElementById('cs-url-input').value || cloudSyncUrl);
+  if(!url){ toast('Bitte zuerst eine Web-App URL eingeben','warn'); return; }
+  cloudSyncUrl = url;
+  persist(true);
+  toast('⏳ Speichere in Google Sheets…');
+  await executeLiveSave();
+  toast('☁️ Erfolgreich in Google Sheets gespeichert!');
+}
+
+/* ══ RENDER ALL ═════════════════════════════════════════════════ */
+function renderAll(){
+  renderExpiryList();
+  renderShopping();
+  renderTasks();
+  renderProdukteTab();
+  renderPersonenTab();
+}
+
+/* ══ INIT & AUTO-SYNC LISTENERS ═════════════════════════════════ */
+// Auto-repair batches with missing names using catalog products
+inventory.forEach(b => {
+  if((!b.name || !b.name.trim()) && b.barcode && productMap[b.barcode]){
+    b.name = productMap[b.barcode].name;
+    b.emoji = b.emoji || productMap[b.barcode].emoji;
+  }
+});
+
+checkMonthlyReset();
+applyEmbed(calEmbedUrl);
+renderAll();
+
+// Set initial sync badge status
+if(cloudSyncUrl){
+  updateSyncStatusUI('online');
+  // Auto-sync load at startup
+  setTimeout(() => {
+    syncDownloadGoogleSheet(false);
+  }, 600);
+} else {
+  updateSyncStatusUI('offline');
+}
+
+// 1. Instant sync when switching back to tab / unlocking device
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && cloudSyncUrl && !_isLiveSyncing) {
+    syncDownloadGoogleSheet(false);
+  }
+});
+window.addEventListener('focus', () => {
+  if (cloudSyncUrl && !_isLiveSyncing) {
+    syncDownloadGoogleSheet(false);
+  }
+});
+
+// 2. Periodic background check every 18 seconds (only when tab is active/visible)
+setInterval(() => {
+  if (document.visibilityState === 'visible' && cloudSyncUrl && !_isLiveSyncing) {
+    syncDownloadGoogleSheet(false);
+  }
+}, 18000);
+
+// 3. LocalStorage cross-tab sync (if multiple tabs are open on the same device)
+window.addEventListener('storage', e => {
+  if(['inventory','shopping','recurringTasks','onceTasks','points','completionLog','pointAdjustments','productMap','quickTiles','erfassenTiles','deletedIds'].includes(e.key)){
+    inventory        = ld('inventory',        []);
+    shopping         = ld('shopping',         []);
+    recurringTasks   = ld('recurringTasks',   []);
+    onceTasks        = ld('onceTasks',        []);
+    completionLog    = ld('completionLog',    []);
+    pointAdjustments = ld('pointAdjustments', []);
+    productMap       = ld('productMap',       {});
+    quickTiles       = ld('quickTiles',       []);
+    erfassenTiles    = ld('erfassenTiles',    []);
+    deletedIds       = ld('deletedIds',       {});
+    points           = ld('points',           {});
+    renderAll();
+  }
+});
+
+// 4. Register Service Worker for PWA / WebAPK support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg error:', err));
+  });
+}
+</script>
+</body>
+</html>

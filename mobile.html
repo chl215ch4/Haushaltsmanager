@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0f1117" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>🏠 Haushalt Mobil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ── TOKENS ─────────────────────────────────── */
+  :root{
+    --bg:#0f1117; --surf:#1a1d27; --surf2:#22263a; --surf3:#2a2f45;
+    --acc:#5b6af5; --acc2:#818cf8; --tx:#e8eaf6; --tx2:#8b93b8;
+    --brd:#2d3250; --red:#ef4444; --grn:#22c55e; --yel:#f59e0b;
+    --rs:12px; --tr:0.17s ease;
+    --nav-h:64px; --top-h:56px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);
+    height:100dvh;overflow:hidden;display:flex;flex-direction:column;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ── TOP BAR ─────────────────────────────────── */
+  .topbar{
+    height:var(--top-h);background:var(--surf);border-bottom:1px solid var(--brd);
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 16px;flex-shrink:0;z-index:50;
+    padding-top: env(safe-area-inset-top,0);
+  }
+  .topbar-title{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .sync-pill{
+    display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2);
+    background:var(--surf2);border-radius:20px;padding:4px 10px;border:1px solid var(--brd);
+    cursor:pointer;
+  }
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--brd)}
+  .sync-dot.online{background:var(--grn)}
+  .sync-dot.syncing{background:var(--yel);animation:pulse .8s infinite}
+  .sync-dot.error{background:var(--red)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* ── SCROLL CONTENT ─────────────────────────── */
+  .content{
+    flex:1;overflow-y:auto;overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + 8px);
+  }
+  .tab-pane{display:none;padding:12px 14px}
+  .tab-pane.active{display:block}
+
+  /* ── BOTTOM NAV ─────────────────────────────── */
+  .bottom-nav{
+    position:fixed;bottom:0;left:0;right:0;
+    height:calc(var(--nav-h) + var(--safe-bottom));
+    background:var(--surf);border-top:1px solid var(--brd);
+    display:flex;z-index:100;
+    padding-bottom:var(--safe-bottom);
+  }
+  .nav-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;cursor:pointer;transition:color var(--tr);color:var(--tx2);
+    border:none;background:none;font-family:inherit;position:relative;
+  }
+  .nav-btn.active{color:var(--acc2)}
+  .nav-btn .nav-ic{font-size:22px;line-height:1}
+  .nav-btn .nav-lb{font-size:10px;font-weight:600}
+  .nav-badge{
+    position:absolute;top:6px;right:calc(50% - 18px);
+    min-width:16px;height:16px;background:var(--red);border-radius:8px;
+    font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;
+    justify-content:center;padding:0 3px;
+  }
+
+  /* ── SECTION HEADERS ─────────────────────────── */
+  .sec-hdr{
+    display:flex;align-items:center;justify-content:space-between;
+    margin:14px 0 8px;
+  }
+  .sec-title{font-size:13px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px}
+  .sec-badge{font-size:11px;color:var(--tx2);background:var(--surf2);border-radius:8px;padding:2px 8px}
+
+  /* ── CARDS ───────────────────────────────────── */
+  .card{
+    background:var(--surf);border:1px solid var(--brd);border-radius:var(--rs);
+    margin-bottom:10px;overflow:hidden;
+  }
+  .card-hdr{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px;cursor:pointer;
+  }
+  .card-hdr-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+  .card-em{font-size:26px;flex-shrink:0;line-height:1}
+  .card-info{min-width:0;flex:1}
+  .card-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card-sub{font-size:11px;color:var(--tx2);margin-top:2px}
+  .card-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+  /* ── BATCH ROWS ──────────────────────────────── */
+  .batch-rows{border-top:1px solid var(--brd)}
+  .batch-row{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;border-bottom:1px solid var(--brd);gap:10px;
+  }
+  .batch-row:last-child{border-bottom:none}
+  .batch-row-left{min-width:0;flex:1}
+  .batch-mhd{font-size:12px;color:var(--tx2)}
+  .batch-mhd.warn{color:var(--yel)}
+  .batch-mhd.danger{color:var(--red)}
+  .batch-qty-info{font-size:12px;font-weight:600}
+
+  /* ── BADGES ──────────────────────────────────── */
+  .badge{display:inline-flex;align-items:center;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700}
+  .b-red{background:rgba(239,68,68,.18);color:#ef4444}
+  .b-yel{background:rgba(245,158,11,.18);color:#f59e0b}
+  .b-grn{background:rgba(34,197,94,.18);color:#22c55e}
+  .b-blu{background:rgba(91,106,245,.18);color:#818cf8}
+
+  /* ── BUTTONS ─────────────────────────────────── */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    border:none;border-radius:var(--rs);font-family:inherit;font-weight:600;
+    cursor:pointer;transition:all var(--tr);white-space:nowrap;
+  }
+  .btn-sm{padding:7px 12px;font-size:12px}
+  .btn-md{padding:11px 18px;font-size:14px}
+  .btn-lg{padding:15px 24px;font-size:15px;width:100%}
+  .btn-primary{background:var(--acc);color:#fff}
+  .btn-primary:hover{filter:brightness(1.1)}
+  .btn-secondary{background:var(--surf2);color:var(--tx);border:1px solid var(--brd)}
+  .btn-secondary:hover{border-color:var(--acc)}
+  .btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+  .btn-ghost{background:none;color:var(--tx2);border:1px solid var(--brd)}
+  .btn-ghost:hover{border-color:var(--acc);color:var(--acc2)}
+
+  /* ── FAB ─────────────────────────────────────── */
+  .fab{
+    position:fixed;right:18px;bottom:calc(var(--nav-h) + var(--safe-bottom) + 16px);
+    width:56px;height:56px;border-radius:50%;background:var(--acc);color:#fff;
+    font-size:26px;display:flex;align-items:center;justify-content:center;
+    border:none;cursor:pointer;box-shadow:0 4px 20px rgba(91,106,245,.5);
+    z-index:90;transition:all var(--tr);
+  }
+  .fab:active{transform:scale(.93)}
+
+  /* ── SHOPPING ITEMS ──────────────────────────── */
+  .shop-item{
+    display:flex;align-items:center;gap:12px;
+    background:var(--surf);border:1px solid var(--brd);border-radius:var(--rs);
+    padding:13px 14px;margin-bottom:8px;transition:all var(--tr);
+  }
+  .shop-item.done{opacity:.5}
+  .shop-chk{
+    width:24px;height:24px;border-radius:50%;border:2px solid var(--brd);
+    flex-shrink:0;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;font-size:14px;transition:all var(--tr);
+  }
+  .shop-chk.done{background:var(--grn);border-color:var(--grn);color:#fff}
+  .shop-em{font-size:22px;flex-shrink:0}
+  .shop-name{flex:1;font-size:14px;font-weight:600;min-width:0}
+  .shop-qty{font-size:12px;color:var(--tx2);flex-shrink:0}
+  .shop-del{background:none;border:none;color:var(--tx2);font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0}
+
+  /* ── TASK ITEMS ──────────────────────────────── */
+  .task-item{
+    display:flex;align-items:center;gap:12px;
+    background:var(--surf);border:1px solid var(--brd);border-radius:var(--rs);
+    padding:13px 14px;margin-bottom:8px;cursor:pointer;transition:all var(--tr);
+  }
+  .task-item:active{transform:scale(.98)}
+  .task-item.done-today{opacity:.45;pointer-events:none}
+  .task-item.overdue{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.04)}
+  .task-em{font-size:26px;flex-shrink:0}
+  .task-info{flex:1;min-width:0}
+  .task-name{font-size:14px;font-weight:700}
+  .task-sub{font-size:11px;color:var(--tx2);margin-top:3px}
+  .task-pts{font-size:11px;color:var(--acc2);font-weight:700;flex-shrink:0}
+  .task-done-badge{font-size:11px;color:var(--grn);font-weight:600;flex-shrink:0}
+
+  /* ── KACHELN (Quick tiles) ───────────────────── */
+  .kacheln-wrap{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+  .kachel{
+    width:64px;height:64px;border-radius:var(--rs);
+    background:var(--surf);border:1px solid var(--brd);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;cursor:pointer;transition:all var(--tr);flex-shrink:0;
+  }
+  .kachel:active{transform:scale(.92);border-color:var(--acc)}
+  .kachel-em{font-size:26px;line-height:1}
+  .kachel-nm{font-size:9px;color:var(--tx2);text-align:center;max-width:60px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 2px}
+
+  /* ── MODALS ──────────────────────────────────── */
+  .overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;
+    display:none;align-items:flex-end;justify-content:center;
+  }
+  .overlay.vis{display:flex}
+  .sheet{
+    background:var(--surf);border-radius:20px 20px 0 0;width:100%;
+    padding:20px 18px;padding-bottom:calc(20px + var(--safe-bottom));
+    max-height:92dvh;overflow-y:auto;animation:slideUp .22s ease;
+  }
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .sheet-handle{
+    width:36px;height:4px;background:var(--brd);border-radius:2px;
+    margin:0 auto 18px;
+  }
+  .sheet-title{font-size:17px;font-weight:700;margin-bottom:18px;text-align:center}
+  .form-grp{margin-bottom:14px}
+  .form-grp label{display:block;font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+  input,select,textarea{
+    width:100%;background:var(--surf2);border:1px solid var(--brd);
+    border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:15px;
+    padding:12px 14px;outline:none;transition:border-color var(--tr);
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+  .modal-acts{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+
+  /* ── PERSON GRID ─────────────────────────────── */
+  .person-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+  .p-btn{
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    padding:14px 10px;background:var(--surf2);border:2px solid var(--brd);
+    border-radius:var(--rs);cursor:pointer;transition:all var(--tr);
+  }
+  .p-btn.sel{border-color:var(--acc);background:rgba(91,106,245,.15)}
+  .p-btn-em{font-size:28px}
+  .p-btn-nm{font-size:12px;font-weight:700}
+
+  /* ── DATE TOGGLE ─────────────────────────────── */
+  .mode-toggle{display:flex;gap:6px;margin-bottom:10px}
+  .mode-btn{
+    flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:600;
+    border:1px solid var(--brd);background:var(--surf2);color:var(--tx2);cursor:pointer;
+  }
+  .mode-btn.active{border-color:var(--acc);background:rgba(91,106,245,.15);color:var(--acc2)}
+
+  /* ── SEARCH RESULTS ──────────────────────────── */
+  .search-results{
+    background:var(--surf2);border:1px solid var(--brd);border-radius:var(--rs);
+    margin-top:6px;display:none;max-height:200px;overflow-y:auto;
+  }
+  .search-results.vis{display:block}
+  .search-res{
+    display:flex;align-items:center;gap:10px;padding:12px 14px;
+    border-bottom:1px solid var(--brd);cursor:pointer;
+  }
+  .search-res:last-child{border-bottom:none}
+  .search-res:active{background:var(--surf3)}
+
+  /* ── LOCATION CHIP ───────────────────────────── */
+  .loc-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .loc-chip{
+    padding:7px 12px;border-radius:20px;font-size:12px;font-weight:600;
+    border:1px solid var(--brd);background:var(--surf2);color:var(--tx2);cursor:pointer;
+    transition:all var(--tr);
+  }
+  .loc-chip.active{border-color:var(--acc);background:rgba(91,106,245,.15);color:var(--acc2)}
+
+  /* ── EMPTY STATE ─────────────────────────────── */
+  .empty{text-align:center;padding:48px 20px;color:var(--tx2)}
+  .empty-ic{font-size:48px;margin-bottom:12px}
+  .empty-tx{font-size:14px}
+
+  /* ── TOAST ───────────────────────────────────── */
+  #toast{
+    position:fixed;bottom:calc(var(--nav-h) + var(--safe-bottom) + 16px);
+    left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--surf3);border:1px solid var(--brd);border-radius:20px;
+    padding:10px 20px;font-size:13px;font-weight:600;z-index:999;
+    opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none;
+    max-width:90vw;text-align:center;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ── PULL REFRESH ─────────────────────────────── */
+  .pull-hint{text-align:center;font-size:11px;color:var(--tx2);padding:8px;display:none}
+
+  /* ── BESTAND FILTER CHIPS ────────────────────── */
+  .filter-bar{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+  .filter-bar::-webkit-scrollbar{display:none}
+  .filter-chip{
+    padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;
+    border:1px solid var(--brd);background:var(--surf2);color:var(--tx2);cursor:pointer;
+    transition:all var(--tr);flex-shrink:0;
+  }
+  .filter-chip.active{border-color:var(--acc);background:rgba(91,106,245,.15);color:var(--acc2)}
+
+  /* ── CALC MHD ────────────────────────────────── */
+  .calc-mhd{font-size:12px;color:var(--acc2);padding:6px 0;font-weight:600}
+
+  /* ── SYNC SETUP BANNER ───────────────────────── */
+  .sync-banner{
+    background:rgba(91,106,245,.1);border:1px solid var(--acc);border-radius:var(--rs);
+    padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.6;
+  }
+  .sync-banner a{color:var(--acc2);text-decoration:none}
+</style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────── -->
+<div class="topbar">
+  <div class="topbar-title">🏠 Haushalt</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button onclick="switchToTablet()" title="In den Tablet / Desktop-Modus wechseln" style="background:var(--surf2);color:var(--tx);border:1px solid var(--brd);padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+      🖥️ Tablet-Modus
+    </button>
+    <div class="sync-pill" onclick="openSyncSheet()">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-text">Offline</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONTENT ───────────────────────────────────── -->
+<div class="content" id="content">
+
+  <!-- ══ TAB: BESTAND ══════════════════════════════ -->
+  <div class="tab-pane active" id="tab-bestand">
+    <div class="filter-bar" id="loc-filter-bar">
+      <div class="filter-chip active" data-loc="all" onclick="setLocFilter(this,'all')">Alle</div>
+      <div class="filter-chip" data-loc="Kühlschrank"    onclick="setLocFilter(this,'Kühlschrank')">🧊 Kühlschrank</div>
+      <div class="filter-chip" data-loc="Gefrierschrank" onclick="setLocFilter(this,'Gefrierschrank')">🥶 Gefriersch.</div>
+      <div class="filter-chip" data-loc="Arbeitsplatte"  onclick="setLocFilter(this,'Arbeitsplatte')">🍳 Arbeitsplatte</div>
+      <div class="filter-chip" data-loc="Kleine Kammer"  onclick="setLocFilter(this,'Kleine Kammer')">📦 Kl. Kammer</div>
+      <div class="filter-chip" data-loc="Große Kammer"   onclick="setLocFilter(this,'Große Kammer')">🏚️ Gr. Kammer</div>
+      <div class="filter-chip" data-loc="Süßschrank"     onclick="setLocFilter(this,'Süßschrank')">🍬 Süßschrank</div>
+    </div>
+    <div id="bestand-list"></div>
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- ══ TAB: EINKAUF ══════════════════════════════ -->
+  <div class="tab-pane" id="tab-einkauf">
+    <div class="sec-hdr">
+      <span class="sec-title">Einkaufsliste</span>
+      <span class="sec-badge" id="shop-count"></span>
+    </div>
+    <div id="shopping-list-m"></div>
+
+    <!-- MHD expiry section -->
+    <div class="sec-hdr" style="margin-top:6px">
+      <span class="sec-title">⏱️ Bald ablaufend</span>
+    </div>
+    <div id="expiry-list-m"></div>
+  </div>
+
+  <!-- ══ TAB: AUFGABEN ══════════════════════════════ -->
+  <div class="tab-pane" id="tab-aufgaben">
+    <!-- Quick Kacheln -->
+    <div class="sec-hdr">
+      <span class="sec-title">⚡ Schnellaufgaben</span>
+    </div>
+    <div class="kacheln-wrap" id="kacheln-m"></div>
+
+    <!-- Recurring -->
+    <div class="sec-hdr">
+      <span class="sec-title">🔁 Wiederkehrend</span>
+      <span class="sec-badge" id="rec-count"></span>
+    </div>
+    <div id="rec-tasks-m"></div>
+
+    <!-- Once -->
+    <div class="sec-hdr">
+      <span class="sec-title">📌 Einmalig</span>
+      <span class="sec-badge" id="once-count"></span>
+    </div>
+    <div id="once-tasks-m"></div>
+
+    <!-- Done today -->
+    <div class="sec-hdr" style="margin-top:6px">
+      <span class="sec-title">✅ Heute erledigt</span>
+    </div>
+    <div id="done-today-m"></div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- ── FAB ───────────────────────────────────────── -->
+<button class="fab" id="fab-btn" onclick="fabAction()" title="Hinzufügen">+</button>
+
+<!-- ── BOTTOM NAV ────────────────────────────────── -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-bestand" onclick="switchTab('bestand')">
+    <span class="nav-ic">📦</span>
+    <span class="nav-lb">Bestand</span>
+    <span class="nav-badge" id="badge-bestand" style="display:none"></span>
+  </button>
+  <button class="nav-btn" id="nav-einkauf" onclick="switchTab('einkauf')">
+    <span class="nav-ic">🛒</span>
+    <span class="nav-lb">Einkauf</span>
+    <span class="nav-badge" id="badge-einkauf" style="display:none"></span>
+  </button>
+  <button class="nav-btn" id="nav-aufgaben" onclick="switchTab('aufgaben')">
+    <span class="nav-ic">✅</span>
+    <span class="nav-lb">Aufgaben</span>
+    <span class="nav-badge" id="badge-aufgaben" style="display:none"></span>
+  </button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- ── MODALS / BOTTOM SHEETS ───────────────────── -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<!-- ERFASSEN SHEET -->
+<div class="overlay" id="sh-erfassen">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📦 Produkt erfassen</div>
+
+    <!-- Name search -->
+    <div class="form-grp">
+      <label>🔍 Produkt suchen</label>
+      <input type="text" id="erf-search" placeholder="Name tippen…" oninput="handleErfSearch(this.value)" autocomplete="off" />
+      <div class="search-results" id="erf-search-results"></div>
+    </div>
+
+    <!-- Barcode -->
+    <div class="form-grp">
+      <label>Barcode scannen / eingeben</label>
+      <input type="text" id="erf-barcode" placeholder="Code…" autocomplete="off"
+             onkeydown="if(event.key==='Enter') processErfBarcode()" />
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-primary btn-lg" onclick="processErfBarcode()">Weiter →</button>
+      <button class="btn btn-ghost btn-lg" onclick="closeSheet('sh-erfassen')">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEUES PRODUKT ANLEGEN -->
+<div class="overlay" id="sh-new-prod">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="np-m-title">🆕 Neues Produkt</div>
+    <input type="hidden" id="np-m-barcode" />
+
+    <div class="form-grp">
+      <label>Emoji</label>
+      <input type="text" id="np-m-emoji" maxlength="2" placeholder="🍎" style="font-size:24px;text-align:center" />
+    </div>
+    <div class="form-grp">
+      <label>Name</label>
+      <input type="text" id="np-m-name" placeholder="z.B. Bio-Vollmilch" />
+    </div>
+    <div class="form-grp">
+      <label>Lagerort</label>
+      <select id="np-m-loc">
+        <option value="Kühlschrank">🧊 Kühlschrank</option>
+        <option value="Gefrierschrank">🥶 Gefrierschrank</option>
+        <option value="Arbeitsplatte">🍳 Arbeitsplatte</option>
+        <option value="Kleine Kammer">📦 Kleine Kammer</option>
+        <option value="Große Kammer">🏚️ Große Kammer</option>
+        <option value="Süßschrank">🍬 Süßschrank</option>
+      </select>
+    </div>
+    <div class="form-grp">
+      <label>Stückzahl</label>
+      <input type="number" id="np-m-qty" min="1" value="1" />
+    </div>
+    <div class="form-grp">
+      <label>Haltbarkeit</label>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="np-m-mode-mhd" onclick="setModeM('np','mhd')">MHD</button>
+        <button class="mode-btn" id="np-m-mode-kauf" onclick="setModeM('np','kauf')">Kaufdatum</button>
+      </div>
+      <div id="np-m-mhd-grp"><input type="date" id="np-m-mhd" /></div>
+      <div id="np-m-kauf-grp" style="display:none">
+        <div class="form-grp"><label>Kaufdatum</label><input type="date" id="np-m-kaufdate" onchange="calcMhdM('np')" /></div>
+        <div class="form-grp">
+          <label>Typische Haltbarkeit</label>
+          <select id="np-m-shelf" onchange="calcMhdM('np')">
+            <option value="1">1 Tag</option><option value="2">2 Tage</option><option value="3">3 Tage</option>
+            <option value="5">5 Tage</option><option value="7" selected>7 Tage</option><option value="10">10 Tage</option>
+            <option value="14">14 Tage</option><option value="21">21 Tage</option><option value="30">1 Monat</option>
+            <option value="60">2 Monate</option><option value="90">3 Monate</option>
+            <option value="180">6 Monate</option><option value="365">1 Jahr</option>
+          </select>
+        </div>
+        <div class="calc-mhd" id="np-m-calc"></div>
+      </div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-primary btn-lg" onclick="saveNewProdM()">✅ Einlagern</button>
+      <button class="btn btn-ghost btn-lg" onclick="closeSheet('sh-new-prod')">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- BEKANNTES PRODUKT ERFASSEN (CHARGE) -->
+<div class="overlay" id="sh-exist-prod">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="ep-m-title">Produkt erfassen</div>
+    <input type="hidden" id="ep-m-barcode" />
+
+    <div style="display:flex;align-items:center;gap:12px;background:var(--surf2);border-radius:var(--rs);padding:12px;margin-bottom:16px">
+      <span id="ep-m-emoji" style="font-size:32px"></span>
+      <div>
+        <div id="ep-m-name" style="font-size:15px;font-weight:700"></div>
+        <div id="ep-m-loc" style="font-size:11px;color:var(--tx2);margin-top:2px"></div>
+      </div>
+    </div>
+
+    <div class="form-grp">
+      <label>Lagerort für diese Charge</label>
+      <select id="ep-m-loc-sel">
+        <option value="Kühlschrank">🧊 Kühlschrank</option>
+        <option value="Gefrierschrank">🥶 Gefrierschrank</option>
+        <option value="Arbeitsplatte">🍳 Arbeitsplatte</option>
+        <option value="Kleine Kammer">📦 Kleine Kammer</option>
+        <option value="Große Kammer">🏚️ Große Kammer</option>
+        <option value="Süßschrank">🍬 Süßschrank</option>
+      </select>
+    </div>
+    <div class="form-grp">
+      <label>Stückzahl</label>
+      <input type="number" id="ep-m-qty" min="1" value="1" />
+    </div>
+    <div class="form-grp">
+      <label>Haltbarkeit</label>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="ep-m-mode-mhd" onclick="setModeM('ep','mhd')">MHD</button>
+        <button class="mode-btn" id="ep-m-mode-kauf" onclick="setModeM('ep','kauf')">Kaufdatum</button>
+      </div>
+      <div id="ep-m-mhd-grp"><input type="date" id="ep-m-mhd" /></div>
+      <div id="ep-m-kauf-grp" style="display:none">
+        <div class="form-grp"><label>Kaufdatum</label><input type="date" id="ep-m-kaufdate" onchange="calcMhdM('ep')" /></div>
+        <div class="form-grp">
+          <label>Typische Haltbarkeit</label>
+          <select id="ep-m-shelf" onchange="calcMhdM('ep')">
+            <option value="1">1 Tag</option><option value="2">2 Tage</option><option value="3">3 Tage</option>
+            <option value="5">5 Tage</option><option value="7" selected>7 Tage</option><option value="10">10 Tage</option>
+            <option value="14">14 Tage</option><option value="21">21 Tage</option><option value="30">1 Monat</option>
+            <option value="60">2 Monate</option><option value="90">3 Monate</option>
+            <option value="180">6 Monate</option><option value="365">1 Jahr</option>
+          </select>
+        </div>
+        <div class="calc-mhd" id="ep-m-calc"></div>
+      </div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-primary btn-lg" onclick="saveExistProdM()">✅ Einlagern</button>
+      <button class="btn btn-ghost btn-lg" onclick="closeSheet('sh-exist-prod')">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUFGABE ERLEDIGEN -->
+<div class="overlay" id="sh-complete-task">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="ct-m-title">Aufgabe erledigen</div>
+    <input type="hidden" id="ct-m-id" />
+    <input type="hidden" id="ct-m-type" />
+
+    <p style="font-size:12px;color:var(--tx2);margin-bottom:12px;text-align:center">Wer hat diese Aufgabe erledigt?</p>
+    <div class="person-grid" id="ct-m-persons"></div>
+
+    <div style="margin-top:8px">
+      <button class="btn btn-ghost btn-lg" onclick="openPostponeM()">📅 Einmalig verschieben</button>
+    </div>
+    <div id="ct-m-postpone-grp" style="display:none;margin-top:10px">
+      <div class="form-grp"><label>Neues Datum</label><input type="date" id="ct-m-postpone" /></div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-primary btn-lg" onclick="doCompleteTaskM()">✅ Erledigt</button>
+      <button class="btn btn-ghost btn-lg" onclick="closeSheet('sh-complete-task')">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- EINKAUF → EINLAGERN -->
+<div class="overlay" id="sh-shop-checkin">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sci-title">Eingekauft & einlagern</div>
+    <input type="hidden" id="sci-shop-id" />
+
+    <div style="display:flex;align-items:center;gap:12px;background:var(--surf2);border-radius:var(--rs);padding:12px;margin-bottom:16px">
+      <span id="sci-emoji" style="font-size:32px"></span>
+      <div>
+        <div id="sci-name" style="font-size:15px;font-weight:700"></div>
+      </div>
+    </div>
+
+    <div class="form-grp">
+      <label>Lagerort</label>
+      <select id="sci-loc">
+        <option value="Kühlschrank">🧊 Kühlschrank</option>
+        <option value="Gefrierschrank">🥶 Gefrierschrank</option>
+        <option value="Arbeitsplatte">🍳 Arbeitsplatte</option>
+        <option value="Kleine Kammer">📦 Kleine Kammer</option>
+        <option value="Große Kammer">🏚️ Große Kammer</option>
+        <option value="Süßschrank">🍬 Süßschrank</option>
+      </select>
+    </div>
+    <div class="form-grp">
+      <label>Stückzahl</label>
+      <input type="number" id="sci-qty" min="1" value="1" />
+    </div>
+    <div class="form-grp">
+      <label>Haltbarkeit</label>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="sci-mode-mhd" onclick="setModeM('sci','mhd')">MHD</button>
+        <button class="mode-btn" id="sci-mode-kauf" onclick="setModeM('sci','kauf')">Kaufdatum</button>
+      </div>
+      <div id="sci-mhd-grp"><input type="date" id="sci-mhd" /></div>
+      <div id="sci-kauf-grp" style="display:none">
+        <div class="form-grp"><label>Kaufdatum</label><input type="date" id="sci-kaufdate" onchange="calcMhdM('sci')" /></div>
+        <div class="form-grp">
+          <label>Typische Haltbarkeit</label>
+          <select id="sci-shelf" onchange="calcMhdM('sci')">
+            <option value="1">1 Tag</option><option value="2">2 Tage</option><option value="3">3 Tage</option>
+            <option value="5">5 Tage</option><option value="7" selected>7 Tage</option><option value="10">10 Tage</option>
+            <option value="14">14 Tage</option><option value="21">21 Tage</option><option value="30">1 Monat</option>
+            <option value="60">2 Monate</option><option value="90">3 Monate</option>
+            <option value="180">6 Monate</option><option value="365">1 Jahr</option>
+          </select>
+        </div>
+        <div class="calc-mhd" id="sci-calc"></div>
+      </div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-primary btn-lg" onclick="saveShopCheckin()">✅ Einlagern</button>
+      <button class="btn btn-secondary btn-lg" onclick="markShopDoneOnly()">Nur als gekauft markieren</button>
+      <button class="btn btn-ghost btn-lg" onclick="closeSheet('sh-shop-checkin')">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- EINKAUF MANUELL HINZUFÜGEN -->
+<div class="overlay" id="sh-add-shop">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">🛒 Zur Einkaufsliste</div>
+    <div class="form-grp">
+      <label>Produkt suchen</label>
+      <input type="text" id="as-search" placeholder="Name tippen…" oninput="handleAddShopSearch(this.value)" autocomplete="off" />
+      <div class="search-results" id="as-results"></div>
+    </div>
+    <div class="form-grp">
+      <label>Oder manuell</label>
+      <input type="text" id="as-name" placeholder="Name" />
+    </div>
+    <div class="form-grp">
+      <label>Stückzahl</label>
+      <input type="number" id="as-qty" min="1" value="1" />
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-primary btn-lg" onclick="saveAddShop()">+ Hinzufügen</button>
+      <button class="btn btn-ghost btn-lg" onclick="closeSheet('sh-add-shop')">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- SYNC SETUP -->
+<div class="overlay" id="sh-sync">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">☁️ Cloud-Sync Einstellungen</div>
+    <div class="sync-banner">
+      💡 Trage hier dieselbe Google Apps Script URL wie in der Desktop-App ein, um Daten zu teilen. Änderungen werden sofort synchronisiert.
+    </div>
+    <div class="form-grp">
+      <label>Apps Script URL</label>
+      <input type="url" id="sync-url-input" placeholder="https://script.google.com/macros/s/…/exec" />
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-primary btn-lg" onclick="saveSyncUrl()">💾 Speichern & Laden</button>
+      <button class="btn btn-secondary btn-lg" onclick="doManualSync()">🔄 Jetzt aktualisieren</button>
+      <button class="btn btn-ghost btn-lg" onclick="closeSheet('sh-sync')">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- ── JAVASCRIPT ───────────────────────────────── -->
+<!-- ═══════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ══ VIEW MODE ROUTING (Mobile <-> Tablet) ═════════════════════ */
+function switchToTablet() {
+  localStorage.setItem('household_preferred_view', 'tablet');
+  window.location.href = 'index.html';
+}
+
+function switchToMobile() {
+  localStorage.setItem('household_preferred_view', 'mobile');
+  window.location.href = 'mobile.html';
+}
+
+(function initViewRouting() {
+  const params = new URLSearchParams(window.location.search);
+  const vParam = params.get('view');
+  if (vParam === 'tablet') {
+    localStorage.setItem('household_preferred_view', 'tablet');
+    window.location.href = 'index.html';
+    return;
+  }
+  if (vParam === 'mobile') {
+    localStorage.setItem('household_preferred_view', 'mobile');
+    return;
+  }
+  const pref = localStorage.getItem('household_preferred_view');
+  if (pref === 'tablet') {
+    window.location.href = 'index.html';
+    return;
+  }
+  // Auto-detect large desktop / tablet screen if user hasn't set an explicit preference
+  if (!pref && window.innerWidth >= 1024) {
+    window.location.href = 'index.html';
+  }
+})();
+
+/* ── UTILS ────────────────────────────────────────── */
+const uid  = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+const td   = () => new Date().toISOString().split('T')[0];
+const mk   = () => new Date().toISOString().slice(0,7);
+const ld   = (k,d) => { try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch{ return d; } };
+const sv   = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} };
+
+function fmtD(s){
+  if(!s) return '—';
+  const [y,m,d]=s.split('-'); return `${d}.${m}.${y}`;
+}
+function daysUntil(s){
+  if(!s) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const exp = new Date(s+'T00:00:00');
+  return Math.round((exp-now)/(86400000));
+}
+function toast(msg, type='ok'){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = type==='warn' ? 'rgba(245,158,11,.9)' : type==='err' ? 'rgba(239,68,68,.9)' : 'var(--surf3)';
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.remove('show'), 2600);
+}
+
+/* ── DATA STORE (same localStorage keys as desktop) ── */
+let persons         = ld('persons', [
+  { id:'chris', name:'Chris', emoji:'👨' },
+  { id:'tiffy', name:'Tiffy', emoji:'👩' },
+  { id:'emma',  name:'Emma',  emoji:'🧒' }
+]);
+let productMap      = ld('productMap',    {});
+let inventory       = ld('inventory',     []);
+let shopping        = ld('shopping',      []);
+let recurringTasks  = ld('recurringTasks', []);
+let onceTasks       = ld('onceTasks',     []);
+let completionLog   = ld('completionLog', []);
+let pointAdjustments= ld('pointAdjustments', []);
+let quickTiles      = ld('quickTiles',    []);
+let erfassenTiles   = ld('erfassenTiles', []);
+let deletedIds      = ld('deletedIds',    {}); // { [id]: timestamp } – tombstones to prevent resurrecting deleted items
+let points          = ld('points',        { monat:mk(), chris:0, tiffy:0, emma:0 });
+let monthHistory    = ld('monthHistory',  []);
+let calEmbedUrl     = ld('calEmbedUrl',   '');
+let cloudSyncUrl    = ld('cloudSyncUrl',  '');
+
+/* ── PERSIST & CONFLICT-FREE SYNC ──────────────────── */
+let _liveSyncTimer     = null;
+let _isLiveSyncing     = false;
+let _isFetchingCloud   = false;
+let _lastSilentSyncRun = 0;
+let _localModifiedTime = ld('_localModifiedTime', Date.now());
+let _lastSyncTime      = ld('_lastSyncTime', 0);
+
+function persist(skipSync=false){
+  _localModifiedTime = Date.now();
+  sv('_localModifiedTime', _localModifiedTime);
+
+  sv('persons',          persons);
+  sv('productMap',       productMap);
+  sv('inventory',        inventory);
+  sv('shopping',         shopping);
+  sv('recurringTasks',   recurringTasks);
+  sv('onceTasks',        onceTasks);
+  sv('completionLog',    completionLog);
+  sv('pointAdjustments', pointAdjustments);
+  sv('quickTiles',       quickTiles);
+  sv('erfassenTiles',    erfassenTiles);
+  sv('deletedIds',       deletedIds);
+  sv('points',           points);
+  sv('monthHistory',     monthHistory);
+  sv('calEmbedUrl',      calEmbedUrl);
+  sv('cloudSyncUrl',     cloudSyncUrl);
+
+  if(!skipSync && cloudSyncUrl) queueLiveSync();
+  renderAll();
+}
+
+function getAllDbObj(){
+  return {
+    version: 3,
+    lastModified: _localModifiedTime,
+    exportedAt: new Date().toISOString(),
+    persons, productMap, inventory, shopping,
+    recurringTasks, onceTasks, completionLog, pointAdjustments,
+    quickTiles, erfassenTiles, deletedIds, points, monthHistory, calEmbedUrl, cloudSyncUrl
+  };
+}
+
+/* ══ INTELLIGENT MERGE (PREVENTS DATA OVERWRITING & RESURRECTION) ═════════════ */
+function mergeDbObj(data){
+  if(!data || typeof data !== 'object') return false;
+
+  const remoteTime = data.lastModified || (data.exportedAt ? new Date(data.exportedAt).getTime() : 0);
+  const localChangedSinceLastSync = _localModifiedTime > _lastSyncTime;
+
+  // 0. Merge Tombstones (deletedIds)
+  if(data.deletedIds && typeof data.deletedIds === 'object'){
+    for(const [did, dtime] of Object.entries(data.deletedIds)){
+      if(!deletedIds[did] || dtime > deletedIds[did]){
+        deletedIds[did] = dtime;
+      }
+    }
+  }
+  // Prune tombstones older than 30 days
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  for(const did in deletedIds){
+    if(deletedIds[did] < cutoff) delete deletedIds[did];
+  }
+
+  // 1. Persons: union by id
+  if(Array.isArray(data.persons) && data.persons.length){
+    const localPersonMap = new Map(persons.map(p => [p.id, p]));
+    data.persons.forEach(rp => {
+      if(!localPersonMap.has(rp.id)){
+        persons.push(rp);
+      }
+    });
+  }
+
+  // 2. Product Catalog: merge maps
+  if(data.productMap && typeof data.productMap === 'object'){
+    for(const [code, p] of Object.entries(data.productMap)){
+      if(!deletedIds['PROD_' + code] && !productMap[code]){
+        productMap[code] = p;
+      }
+    }
+  }
+
+  // 3. Inventory: purge deleted, then merge
+  inventory = inventory.filter(b => !deletedIds[b.id] && b.qty > 0);
+
+  if(Array.isArray(data.inventory)){
+    const localBatchMap = new Map(inventory.map(b => [b.id, b]));
+
+    data.inventory.forEach(rb => {
+      if(deletedIds[rb.id] || (rb.qty || 0) <= 0) return; // Do not revive deleted batches!
+
+      if(localBatchMap.has(rb.id)){
+        const lb = localBatchMap.get(rb.id);
+        if((rb.updatedAt || 0) > (lb.updatedAt || 0)){
+          lb.qty = rb.qty;
+          lb.location = rb.location;
+          lb.mhd = rb.mhd;
+          lb.updatedAt = rb.updatedAt;
+        } else if((rb.updatedAt || 0) === (lb.updatedAt || 0)){
+          lb.qty = Math.min(lb.qty, rb.qty);
+        }
+        if(lb.qty <= 0){
+          deletedIds[lb.id] = Date.now();
+        }
+      } else {
+        inventory.push(rb);
+      }
+    });
+    inventory = inventory.filter(b => !deletedIds[b.id] && b.qty > 0);
+    inventory.forEach(b => {
+      if((!b.name || !b.name.trim()) && b.barcode && productMap[b.barcode]){
+        b.name = productMap[b.barcode].name;
+        b.emoji = b.emoji || productMap[b.barcode].emoji;
+      }
+    });
+  }
+
+  // 4. Shopping list: purge deleted, merge active items
+  shopping = shopping.filter(s => !deletedIds[s.id]);
+
+  if(Array.isArray(data.shopping)){
+    const localShopMap = new Map(shopping.map(s => [s.id, s]));
+
+    data.shopping.forEach(rs => {
+      if(deletedIds[rs.id]) return; // Do not revive deleted shopping items!
+
+      const localItem = localShopMap.get(rs.id) || shopping.find(s => (rs.barcode && s.barcode === rs.barcode) || s.name.toLowerCase() === rs.name.toLowerCase());
+      if(localItem){
+        if(rs.done) localItem.done = true;
+        if((rs.updatedAt || 0) > (localItem.updatedAt || 0)){
+          localItem.qty = rs.qty;
+          localItem.done = rs.done;
+          localItem.updatedAt = rs.updatedAt;
+        } else {
+          localItem.qty = Math.max(localItem.qty || 1, rs.qty || 1);
+        }
+      } else {
+        shopping.push(rs);
+      }
+    });
+    shopping = shopping.filter(s => !deletedIds[s.id]);
+  }
+
+  // 5. Tasks: keep latest completions & statuses, purge deleted
+  recurringTasks = recurringTasks.filter(t => !deletedIds[t.id]);
+  onceTasks = onceTasks.filter(t => !deletedIds[t.id]);
+
+  if(Array.isArray(data.recurringTasks)){
+    const localRecMap = new Map(recurringTasks.map(t => [t.id, t]));
+    data.recurringTasks.forEach(rt => {
+      if(deletedIds[rt.id]) return;
+      const lt = localRecMap.get(rt.id);
+      if(!lt){
+        recurringTasks.push(rt);
+      } else {
+        if((rt.lastCompleted || '') > (lt.lastCompleted || '')){
+          lt.lastCompleted = rt.lastCompleted;
+          lt.naechste = rt.naechste;
+        }
+      }
+    });
+  }
+
+  if(Array.isArray(data.onceTasks)){
+    const localOnceMap = new Map(onceTasks.map(t => [t.id, t]));
+    data.onceTasks.forEach(ot => {
+      if(deletedIds[ot.id]) return;
+      const lt = localOnceMap.get(ot.id);
+      if(!lt){
+        onceTasks.push(ot);
+      } else {
+        if(ot.done){
+          lt.done = true;
+          lt.doneVon = ot.doneVon || lt.doneVon;
+          lt.doneAm = ot.doneAm || lt.doneAm;
+        }
+      }
+    });
+  }
+
+  // 6. Logs & Point Adjustments: union by id
+  if(Array.isArray(data.completionLog)){
+    const seenLog = new Set(completionLog.map(l => l.id));
+    data.completionLog.forEach(l => {
+      if(!seenLog.has(l.id)){
+        completionLog.push(l);
+        seenLog.add(l.id);
+      }
+    });
+    completionLog.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    if(completionLog.length > 250) completionLog.length = 250;
+  }
+
+  if(Array.isArray(data.pointAdjustments)){
+    const seenAdj = new Set(pointAdjustments.map(a => a.id));
+    data.pointAdjustments.forEach(a => {
+      if(!seenAdj.has(a.id)){
+        pointAdjustments.push(a);
+        seenAdj.add(a.id);
+      }
+    });
+  }
+
+  // 7. Quick Tiles: union by id
+  if(Array.isArray(data.quickTiles)){
+    const seenQ = new Set(quickTiles.map(t => t.id));
+    data.quickTiles.forEach(t => { if(!seenQ.has(t.id) && !deletedIds[t.id]) quickTiles.push(t); });
+  }
+  if(Array.isArray(data.erfassenTiles)){
+    const seenE = new Set(erfassenTiles.map(t => t.id));
+    data.erfassenTiles.forEach(t => { if(!seenE.has(t.id) && !deletedIds[t.id]) erfassenTiles.push(t); });
+  }
+
+  // 8. Points & History:
+  if(data.points && typeof data.points === 'object'){
+    if(data.points.monat === points.monat){
+      persons.forEach(p => {
+        points[p.id] = Math.max(points[p.id] || 0, data.points[p.id] || 0);
+      });
+    } else if(data.points.monat > points.monat){
+      points = data.points;
+    }
+  }
+  if(Array.isArray(data.monthHistory)){
+    const seenMon = new Set(monthHistory.map(m => m.monat));
+    data.monthHistory.forEach(m => { if(!seenMon.has(m.monat)) monthHistory.push(m); });
+  }
+
+  // Update timestamps
+  _lastSyncTime = Math.max(remoteTime, Date.now());
+  sv('_lastSyncTime', _lastSyncTime);
+
+  if(!localChangedSinceLastSync){
+    _localModifiedTime = _lastSyncTime;
+    sv('_localModifiedTime', _localModifiedTime);
+  }
+
+  persist(true);
+  renderAll();
+  setSyncUI('online');
+
+  if(localChangedSinceLastSync){
+    queueLiveSync();
+  }
+
+  return true;
+}
+
+function loadDbObj(data){
+  if(!data||typeof data!=='object') throw new Error('bad data');
+  mergeDbObj(data);
+}
+
+/* ── CLOUD SYNC ───────────────────────────────────── */
+function setSyncUI(s){
+  const dot  = document.getElementById('sync-dot');
+  const text = document.getElementById('sync-text');
+  dot.className = 'sync-dot' + (s==='online'?' online':s==='syncing'?' syncing':s==='error'?' error':'');
+  text.textContent = s==='online'?'Gespeichert':s==='syncing'?'Speichert…':s==='error'?'Fehler':'Offline';
+}
+
+function cleanUrl(u){
+  if(!u) return '';
+  const m = u.match(/src="([^"]+)"/);
+  return m ? m[1] : u.trim();
+}
+
+function queueLiveSync(){
+  if(!cloudSyncUrl) return;
+  setSyncUI('syncing');
+  clearTimeout(_liveSyncTimer);
+  _liveSyncTimer = setTimeout(async ()=>{
+    _liveSyncTimer = null;
+    await executeLiveSave();
+  }, 600);
+}
+
+async function executeLiveSave(){
+  const url = cleanUrl(cloudSyncUrl);
+  if(!url || _isLiveSyncing) return;
+  _isLiveSyncing = true;
+  setSyncUI('syncing');
+  const payload = JSON.stringify(getAllDbObj());
+  try{
+    await fetch(url,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:payload, redirect:'follow' });
+    _lastSyncTime = _localModifiedTime;
+    sv('_lastSyncTime', _lastSyncTime);
+    setSyncUI('online');
+  } catch(e){
+    try{
+      await fetch(url,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:payload });
+      _lastSyncTime = _localModifiedTime;
+      sv('_lastSyncTime', _lastSyncTime);
+      setSyncUI('online');
+    } catch(e2){ setSyncUI('error'); }
+  } finally {
+    _isLiveSyncing = false;
+  }
+}
+
+async function loadFromCloud(isManual = false){
+  const url = cleanUrl(cloudSyncUrl);
+  const now = Date.now();
+  if(!url || _isLiveSyncing || _isFetchingCloud) return;
+
+  // If local changes are pending to be uploaded, do not overwrite with stale cloud data
+  if(_liveSyncTimer !== null){
+    if(!isManual) return;
+    clearTimeout(_liveSyncTimer);
+    _liveSyncTimer = null;
+    await executeLiveSave();
+  }
+
+  if(!isManual && (now - _lastSilentSyncRun) < 3000) return;
+  _lastSilentSyncRun = now;
+  _isFetchingCloud = true;
+
+  setSyncUI('syncing');
+  if(isManual) toast('⏳ Lade Daten…');
+
+  let fetchedData = null;
+  const cbName = 'mobileJsonpCb_' + now;
+
+  // 1. Try JSONP (most reliable in mobile browsers across CORS)
+  try {
+    fetchedData = await new Promise((res,rej)=>{
+      const script = document.createElement('script');
+      const timer  = setTimeout(()=>{ cleanup(); rej(new Error('timeout')); }, 10000);
+      function cleanup(){ clearTimeout(timer); script.remove(); delete window[cbName]; }
+      window[cbName] = (data)=>{
+        cleanup();
+        try {
+          const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+          res(parsed);
+        } catch(e){ res(data); }
+      };
+      script.src = url + (url.includes('?')?'&':'?') + 'callback=' + cbName + '&_=' + now;
+      script.onerror = ()=>{ cleanup(); rej(new Error('script error')); };
+      document.head.appendChild(script);
+    });
+  } catch(e){
+    // 2. Fallback: standard fetch
+    try {
+      const r = await fetch(url + (url.includes('?')?'&':'?') + '_=' + now);
+      const text = await r.text();
+      const cleaned = text.replace(/^[\w_$]+\s*\(/, '').replace(/\)\s*;?\s*$/, '');
+      fetchedData = JSON.parse(cleaned);
+    } catch(e2){
+      console.warn('Sync fetch error:', e2);
+    }
+  } finally {
+    _isFetchingCloud = false;
+  }
+
+  if(fetchedData && typeof fetchedData === 'object' && (fetchedData.inventory || fetchedData.productMap || fetchedData.persons)){
+    mergeDbObj(fetchedData);
+    setSyncUI('online');
+    if(isManual) toast('☁️ Erfolgreich synchronisiert!');
+  } else {
+    setSyncUI('error');
+    if(isManual) toast('❌ Laden fehlgeschlagen', 'err');
+  }
+}
+
+/* ── TAB SWITCHING ────────────────────────────────── */
+let _currentTab = 'bestand';
+function switchTab(name){
+  _currentTab = name;
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  // Update FAB icon
+  const fab = document.getElementById('fab-btn');
+  fab.textContent = name==='einkauf' ? '+' : name==='aufgaben' ? '✅' : '+';
+  fab.title = name==='einkauf' ? 'Zur Einkaufsliste hinzufügen' : name==='aufgaben' ? 'Aufgabe hinzufügen' : 'Produkt erfassen';
+  document.getElementById('content').scrollTop = 0;
+}
+
+function fabAction(){
+  if(_currentTab==='bestand') openSheet('sh-erfassen');
+  else if(_currentTab==='einkauf') openSheet('sh-add-shop');
+  else if(_currentTab==='aufgaben') toast('Aufgaben werden in der Desktop-App angelegt','warn');
+}
+
+/* ── SHEET HELPERS ────────────────────────────────── */
+function openSheet(id){
+  document.getElementById(id).classList.add('vis');
+  // Reset scroll within sheet
+  const sheet = document.querySelector('#'+id+' .sheet');
+  if(sheet) sheet.scrollTop = 0;
+}
+function closeSheet(id){ document.getElementById(id).classList.remove('vis'); }
+// Close on overlay click
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('vis'); });
+});
+
+/* ── LOCATION FILTER (Bestand) ────────────────────── */
+let _locFilter = 'all';
+function setLocFilter(chip, loc){
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  _locFilter = loc;
+  renderBestand();
+}
+
+/* ── RENDER: BESTAND ──────────────────────────────── */
+function renderBestand(){
+  const c = document.getElementById('bestand-list');
+  c.innerHTML = '';
+  const items = inventory.filter(i=>i.qty>0 && (_locFilter==='all' || i.location===_locFilter));
+
+  // Update badge
+  const expCount = inventory.filter(i=>i.qty>0 && i.mhd && daysUntil(i.mhd)<=7).length;
+  const badge = document.getElementById('badge-bestand');
+  badge.textContent = expCount || '';
+  badge.style.display = expCount ? 'flex' : 'none';
+
+  if(!items.length){
+    c.innerHTML = '<div class="empty"><div class="empty-ic">📦</div><div class="empty-tx">Nichts im Bestand</div></div>';
+    return;
+  }
+
+  // Group by product (barcode or name)
+  const groups = {};
+  items.forEach(batch=>{
+    const key = batch.barcode || batch.name;
+    if(!groups[key]) groups[key] = { name:batch.name, emoji:batch.emoji, location:batch.location, batches:[] };
+    groups[key].batches.push(batch);
+  });
+
+  Object.values(groups).forEach(g=>{
+    const totalQty = g.batches.reduce((s,b)=>s+b.qty, 0);
+    const nearestMhd = g.batches.filter(b=>b.mhd).map(b=>b.mhd).sort()[0];
+    const d = nearestMhd ? daysUntil(nearestMhd) : null;
+
+    let badgeHtml = '';
+    if(d!==null){
+      if(d<0)      badgeHtml = `<span class="badge b-red">${Math.abs(d)}d abgel.</span>`;
+      else if(d===0) badgeHtml = '<span class="badge b-red">Heute!</span>';
+      else if(d<=3)  badgeHtml = `<span class="badge b-red">${d}d</span>`;
+      else if(d<=7)  badgeHtml = `<span class="badge b-yel">${d}d</span>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const hasMulti = g.batches.length > 1;
+    const hdr = document.createElement('div');
+    hdr.className = 'card-hdr';
+    hdr.innerHTML = `
+      <div class="card-hdr-left">
+        <span class="card-em">${g.emoji}</span>
+        <div class="card-info">
+          <div class="card-name">${g.name}</div>
+          <div class="card-sub">📍 ${g.location} · ${totalQty}x gesamt ${badgeHtml}</div>
+        </div>
+      </div>
+      <div class="card-right">
+        ${hasMulti ? '<span style="font-size:11px;color:var(--tx2)">▾</span>' : ''}
+        <button class="btn btn-sm btn-secondary" onclick="entnehmenM('${g.batches[0].id}',event)">−1</button>
+      </div>
+    `;
+    if(hasMulti){
+      hdr.onclick = (e)=>{
+        if(e.target.tagName==='BUTTON') return;
+        const rows = card.querySelector('.batch-rows');
+        if(rows) rows.style.display = rows.style.display==='none' ? '' : 'none';
+      };
+    }
+    card.appendChild(hdr);
+
+    if(hasMulti){
+      const rows = document.createElement('div');
+      rows.className = 'batch-rows';
+      rows.style.display = 'none';
+      g.batches.sort((a,b)=>(a.mhd||'9999').localeCompare(b.mhd||'9999')).forEach((b,i)=>{
+        const bd  = b.mhd ? daysUntil(b.mhd) : null;
+        let mhdCls = '';
+        if(bd!==null){ mhdCls = bd<=0?'danger':bd<=7?'warn':''; }
+        const row = document.createElement('div');
+        row.className = 'batch-row';
+        row.innerHTML = `
+          <div class="batch-row-left">
+            <div class="batch-mhd ${mhdCls}">
+              ${i===0?'<span class="badge b-blu" style="font-size:9px;margin-right:4px">Ältestes</span>':''}
+              ${b.mhd ? `MHD: ${fmtD(b.mhd)}` : 'Ohne MHD'}
+              ${bd!==null ? `(${bd<0?Math.abs(bd)+'d abgel.':bd===0?'Heute':bd+'d'})` : ''}
+            </div>
+            <div class="batch-qty-info">${b.qty}x · 📍 ${b.location}</div>
+          </div>
+          <button class="btn btn-sm btn-secondary" onclick="entnehmenM('${b.id}',event)">−1</button>
+        `;
+        rows.appendChild(row);
+      });
+      card.appendChild(rows);
+    }
+    c.appendChild(card);
+  });
+}
+
+function entnehmenM(batchId, e){
+  if(e) e.stopPropagation();
+  const batch = inventory.find(i=>i.id===batchId);
+  if(!batch||batch.qty<=0){ toast('Kein Bestand','warn'); return; }
+  batch.qty -= 1;
+  batch.updatedAt = Date.now();
+  if(batch.qty<=0){
+    deletedIds[batchId] = Date.now();
+    inventory = inventory.filter(i=>i.id!==batchId);
+  }
+  // Update/add shopping
+  const ex = shopping.find(s=>(batch.barcode&&s.barcode===batch.barcode)||s.name.toLowerCase()===batch.name.toLowerCase());
+  if(ex){
+    ex.qty+=1;
+    ex.updatedAt = Date.now();
+  } else {
+    shopping.push({ id:uid(), barcode:batch.barcode||null, name:batch.name, emoji:batch.emoji, qty:1, done:false, updatedAt:Date.now() });
+  }
+  persist();
+  toast(`🛒 ${batch.emoji} ${batch.name} entnommen`);
+}
+
+/* ── RENDER: EINKAUF ──────────────────────────────── */
+function renderEinkauf(){
+  const c = document.getElementById('shopping-list-m');
+  const pending = shopping.filter(s=>!s.done);
+  const done    = shopping.filter(s=>s.done);
+  const all     = [...pending, ...done];
+
+  // Badge
+  const badge = document.getElementById('badge-einkauf');
+  badge.textContent = pending.length || '';
+  badge.style.display = pending.length ? 'flex' : 'none';
+
+  document.getElementById('shop-count').textContent = pending.length ? pending.length+' offen' : '';
+
+  c.innerHTML = '';
+  if(!all.length){
+    c.innerHTML = '<div class="empty"><div class="empty-ic">🛒</div><div class="empty-tx">Einkaufsliste leer</div></div>';
+    return;
+  }
+  all.forEach(it=>{
+    const el = document.createElement('div');
+    el.className = 'shop-item' + (it.done?' done':'');
+    el.innerHTML = `
+      <div class="shop-chk ${it.done?'done':''}" onclick="toggleShopM('${it.id}')">
+        ${it.done?'✓':''}
+      </div>
+      <span class="shop-em">${it.emoji}</span>
+      <span class="shop-name">${it.name}</span>
+      <span class="shop-qty">×${it.qty}</span>
+      <button class="shop-del" onclick="removeShopM('${it.id}')">✕</button>
+    `;
+    c.appendChild(el);
+  });
+
+  // Expiry list
+  renderExpiryM();
+}
+
+function toggleShopM(id){
+  const it = shopping.find(s=>s.id===id);
+  if(!it) return;
+  if(!it.done){
+    // Open check-in sheet
+    openShopCheckin(it);
+  } else {
+    it.done = false;
+    persist();
+  }
+}
+
+function openShopCheckin(item){
+  document.getElementById('sci-shop-id').value = item.id;
+  document.getElementById('sci-emoji').textContent = item.emoji;
+  document.getElementById('sci-name').textContent = item.name;
+  document.getElementById('sci-title').textContent = `${item.emoji} ${item.name} einlagern`;
+  document.getElementById('sci-qty').value = item.qty || 1;
+  document.getElementById('sci-mhd').value = '';
+  // Pre-select location from productMap
+  const p = item.barcode ? productMap[item.barcode] : null;
+  if(p) document.getElementById('sci-loc').value = p.location;
+  setModeM('sci','mhd');
+  openSheet('sh-shop-checkin');
+}
+
+function saveShopCheckin(){
+  const shopId = document.getElementById('sci-shop-id').value;
+  const it = shopping.find(s=>s.id===shopId); if(!it) return;
+  const loc = document.getElementById('sci-loc').value;
+  const qty = parseInt(document.getElementById('sci-qty').value)||1;
+  const {mhd,kaufdatum,shelfLife} = getDateM('sci');
+  inventory.push({ id:uid(), barcode:it.barcode||null, name:it.name, emoji:it.emoji, location:loc, qty, mhd, kaufdatum, shelfLife });
+  it.done = true;
+  persist(); closeSheet('sh-shop-checkin');
+  toast(`✅ ${it.emoji} ${it.name} eingelagert`);
+}
+
+function markShopDoneOnly(){
+  const shopId = document.getElementById('sci-shop-id').value;
+  const it = shopping.find(s=>s.id===shopId); if(!it) return;
+  it.done = true;
+  persist(); closeSheet('sh-shop-checkin');
+  toast(`✓ ${it.name} als gekauft markiert`);
+}
+
+function removeShopM(id){
+  deletedIds[id] = Date.now();
+  shopping = shopping.filter(s=>s.id!==id);
+  persist();
+}
+
+function handleAddShopSearch(val){
+  const res = document.getElementById('as-results');
+  const q = val.trim().toLowerCase();
+  if(!q){ res.classList.remove('vis'); return; }
+  const matches = Object.values(productMap).filter(p=>p.name.toLowerCase().includes(q));
+  if(!matches.length){ res.innerHTML='<div class="search-res" style="color:var(--tx2);font-size:12px">Kein Treffer</div>'; res.classList.add('vis'); return; }
+  res.innerHTML='';
+  matches.forEach(p=>{
+    const d=document.createElement('div'); d.className='search-res';
+    d.innerHTML=`<span style="font-size:20px">${p.emoji}</span><span style="font-weight:600">${p.name}</span>`;
+    d.onclick=()=>{
+      document.getElementById('as-name').value=p.name;
+      document.getElementById('as-search').value='';
+      res.classList.remove('vis');
+    };
+    res.appendChild(d);
+  });
+  res.classList.add('vis');
+}
+
+function saveAddShop(){
+  const name = document.getElementById('as-name').value.trim();
+  if(!name){ toast('Bitte Namen eingeben','warn'); return; }
+  const qty = parseInt(document.getElementById('as-qty').value)||1;
+  const p = Object.values(productMap).find(p=>p.name.toLowerCase()===name.toLowerCase());
+  const emoji = p ? p.emoji : '🛒';
+  const barcode = p ? p.barcode : null;
+  const ex = shopping.find(s=>s.name.toLowerCase()===name.toLowerCase()&&!s.done);
+  if(ex){ ex.qty+=qty; }
+  else { shopping.push({id:uid(), barcode, name, emoji, qty, done:false}); }
+  persist(); closeSheet('sh-add-shop');
+  document.getElementById('as-name').value='';
+  document.getElementById('as-qty').value='1';
+  toast(`🛒 ${name} hinzugefügt`);
+}
+
+/* ── RENDER: ABLAUFENDE ───────────────────────────── */
+function renderExpiryM(){
+  const c = document.getElementById('expiry-list-m');
+  const relevant = inventory.filter(i=>i.qty>0&&i.mhd&&daysUntil(i.mhd)<=14)
+                             .sort((a,b)=>a.mhd.localeCompare(b.mhd));
+  c.innerHTML='';
+  if(!relevant.length){
+    c.innerHTML='<div class="empty" style="padding:20px"><div class="empty-ic" style="font-size:28px">✅</div><div class="empty-tx">Alles frisch</div></div>';
+    return;
+  }
+  relevant.forEach(it=>{
+    const d=daysUntil(it.mhd);
+    let cls='b-grn', lbl=`${d}d`;
+    if(d<0){ cls='b-red'; lbl=`${Math.abs(d)}d abgel.`; }
+    else if(d===0){ cls='b-red'; lbl='Heute!'; }
+    else if(d<=3){ cls='b-red'; lbl=`${d}d`; }
+    else if(d<=7){ cls='b-yel'; lbl=`${d}d`; }
+    const el=document.createElement('div');
+    el.className='shop-item';
+    el.innerHTML=`
+      <span style="font-size:22px">${it.emoji}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700">${it.name}</div>
+        <div style="font-size:11px;color:var(--tx2)">📍 ${it.location} · ${it.qty}x</div>
+      </div>
+      <span class="badge ${cls}">${lbl}</span>
+    `;
+    c.appendChild(el);
+  });
+}
+
+/* ── RENDER: AUFGABEN ─────────────────────────────── */
+const RHYTHM_LBL = {
+  daily:'Täglich', every2d:'Alle 2 Tage', twice_weekly:'2× pro Woche',
+  weekly:'Wöchentlich', biweekly:'Alle 2 Wochen', monthly:'Monatlich',
+  quarterly:'Vierteljährlich', biannual:'Halbjährlich'
+};
+
+function advDate(s,r){
+  const d=new Date(s+'T00:00:00');
+  switch(r){
+    case 'daily':       d.setDate(d.getDate()+1);  break;
+    case 'every2d':     d.setDate(d.getDate()+2);  break;
+    case 'twice_weekly':d.setDate(d.getDate()+4);  break;
+    case 'weekly':      d.setDate(d.getDate()+7);  break;
+    case 'biweekly':    d.setDate(d.getDate()+14); break;
+    case 'monthly':     d.setMonth(d.getMonth()+1);break;
+    case 'quarterly':   d.setMonth(d.getMonth()+3);break;
+    case 'biannual':    d.setMonth(d.getMonth()+6);break;
+  }
+  return d.toISOString().split('T')[0];
+}
+
+function renderAufgaben(){
+  const today = td();
+
+  // Kacheln
+  const kg = document.getElementById('kacheln-m');
+  kg.innerHTML='';
+  quickTiles.forEach(t=>{
+    const k=document.createElement('div');
+    k.className='kachel';
+    k.innerHTML=`<span class="kachel-em">${t.emoji}</span><span class="kachel-nm">${t.name}</span>`;
+    k.onclick=()=>fireKachelM(t);
+    kg.appendChild(k);
+  });
+
+  // Recurring
+  const rc = document.getElementById('rec-tasks-m');
+  rc.innerHTML='';
+  const recDue = recurringTasks.filter(t=>t.naechste<=today);
+  const recFut = recurringTasks.filter(t=>t.naechste>today);
+  document.getElementById('rec-count').textContent = recDue.length ? recDue.length+' fällig' : '';
+
+  [...recDue, ...recFut].forEach(t=>{
+    const isToday = t.lastCompleted===today;
+    const overdue = !isToday && t.naechste<today;
+    const el=document.createElement('div');
+    el.className='task-item'+(isToday?' done-today':overdue?' overdue':'');
+    el.innerHTML=`
+      <span class="task-em">${t.emoji}</span>
+      <div class="task-info">
+        <div class="task-name">${t.name}</div>
+        <div class="task-sub">${RHYTHM_LBL[t.rhythm]||t.rhythm} · Fällig: ${fmtD(t.naechste)}</div>
+      </div>
+      ${isToday?'<span class="task-done-badge">✓ Erledigt</span>':`<span class="task-pts">+${t.punkte}Pkt</span>`}
+    `;
+    if(!isToday) el.onclick=()=>openCompleteM(t.id,'recurring');
+    rc.appendChild(el);
+  });
+  if(!recurringTasks.length) rc.innerHTML='<div class="empty" style="padding:20px"><div class="empty-ic" style="font-size:28px">🔁</div><div class="empty-tx">Keine wiederkehrenden Aufgaben</div></div>';
+
+  // Once
+  const oc = document.getElementById('once-tasks-m');
+  oc.innerHTML='';
+  const open = onceTasks.filter(t=>!t.done);
+  document.getElementById('once-count').textContent = open.length ? open.length+' offen' : '';
+  open.sort((a,b)=>(a.faellig||'9999').localeCompare(b.faellig||'9999')).forEach(t=>{
+    const d = t.faellig ? daysUntil(t.faellig) : null;
+    const overdue = d!==null && d<0;
+    const el=document.createElement('div');
+    el.className='task-item'+(overdue?' overdue':'');
+    el.innerHTML=`
+      <span class="task-em">${t.emoji}</span>
+      <div class="task-info">
+        <div class="task-name">${t.name}</div>
+        <div class="task-sub">${t.faellig?'Fällig: '+fmtD(t.faellig):'Kein Datum'}${overdue?' ⚠️':''}</div>
+      </div>
+      <span class="task-pts">+${t.punkte}Pkt</span>
+    `;
+    el.onclick=()=>openCompleteM(t.id,'once');
+    oc.appendChild(el);
+  });
+  if(!open.length) oc.innerHTML='<div class="empty" style="padding:20px"><div class="empty-ic" style="font-size:28px">📌</div><div class="empty-tx">Keine offenen Aufgaben</div></div>';
+
+  // Done today
+  const dt = document.getElementById('done-today-m');
+  dt.innerHTML='';
+  const todayLog = completionLog.filter(l=>l.date===today);
+  if(!todayLog.length){
+    dt.innerHTML='<div style="font-size:12px;color:var(--tx2);text-align:center;padding:12px">Heute noch nichts erledigt</div>';
+  } else {
+    todayLog.forEach(l=>{
+      const personNames = (l.persons||[]).map(pid=>{ const p=persons.find(x=>x.id===pid); return p?p.name:pid; }).join(', ');
+      const el=document.createElement('div');
+      el.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surf);border:1px solid var(--brd);border-radius:var(--rs);margin-bottom:8px;opacity:.7';
+      el.innerHTML=`<span style="font-size:20px">${l.taskEmoji}</span><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${l.taskName}</div><div style="font-size:11px;color:var(--tx2)">${personNames} · +${l.pts}Pkt</div></div><span style="font-size:14px;color:var(--grn)">✓</span>`;
+      dt.appendChild(el);
+    });
+  }
+
+  // Badges
+  const openTasks = recDue.length + open.length;
+  const badge = document.getElementById('badge-aufgaben');
+  badge.textContent = openTasks || '';
+  badge.style.display = openTasks ? 'flex' : 'none';
+}
+
+/* ── COMPLETE TASK FLOW ────────────────────────────── */
+let _ctMId=null, _ctMType=null, _ctMPersons=new Set();
+
+function openCompleteM(id, type){
+  const task = type==='recurring' ? recurringTasks.find(t=>t.id===id) : onceTasks.find(t=>t.id===id);
+  if(!task) return;
+  _ctMId=id; _ctMType=type; _ctMPersons.clear();
+  document.getElementById('ct-m-id').value=id;
+  document.getElementById('ct-m-type').value=type;
+  document.getElementById('ct-m-title').textContent=`${task.emoji} ${task.name} (+${task.punkte} Pkt.)`;
+  document.getElementById('ct-m-postpone').value=task.naechste||task.faellig||td();
+  document.getElementById('ct-m-postpone-grp').style.display='none';
+
+  const grid=document.getElementById('ct-m-persons');
+  grid.innerHTML='';
+  persons.forEach(p=>{
+    const btn=document.createElement('div');
+    btn.className='p-btn';
+    btn.innerHTML=`<span class="p-btn-em">${p.emoji}</span><span class="p-btn-nm">${p.name}</span>`;
+    btn.onclick=()=>{
+      if(_ctMPersons.has(p.id)){ _ctMPersons.delete(p.id); btn.classList.remove('sel'); }
+      else { _ctMPersons.add(p.id); btn.classList.add('sel'); }
+    };
+    grid.appendChild(btn);
+  });
+  openSheet('sh-complete-task');
+}
+
+function openPostponeM(){
+  const grp=document.getElementById('ct-m-postpone-grp');
+  grp.style.display=grp.style.display==='none'?'':'none';
+}
+
+function doCompleteTaskM(){
+  const id=document.getElementById('ct-m-id').value;
+  const type=document.getElementById('ct-m-type').value;
+  const postponeDate=document.getElementById('ct-m-postpone').value;
+  const postponeVisible=document.getElementById('ct-m-postpone-grp').style.display!=='none';
+
+  const task = type==='recurring' ? recurringTasks.find(t=>t.id===id) : onceTasks.find(t=>t.id===id);
+  if(!task) return;
+
+  if(postponeVisible && _ctMPersons.size===0){
+    // Just postpone
+    if(type==='recurring') task.naechste=postponeDate;
+    else task.faellig=postponeDate;
+    persist(); closeSheet('sh-complete-task');
+    toast('📅 Aufgabe verschoben');
+    return;
+  }
+
+  if(_ctMPersons.size===0){ toast('Bitte mind. eine Person auswählen','warn'); return; }
+
+  const pts=task.punkte;
+  const selectedArr=[..._ctMPersons];
+
+  // Award points
+  selectedArr.forEach(pid=>{
+    const p=persons.find(x=>x.id===pid); if(!p) return;
+    if(points[pid]!==undefined) points[pid]+=pts;
+    else points[pid]=pts;
+  });
+
+  // Log
+  completionLog.unshift({ id:uid(), taskId:task.id, taskName:task.name, taskEmoji:task.emoji, type, persons:selectedArr, pts, date:td() });
+
+  // Advance or remove
+  if(type==='recurring'){
+    task.lastCompleted=td();
+    task.naechste=advDate(td(),task.rhythm);
+  } else {
+    task.done=true; task.doneVon=[..._ctMPersons]; task.doneAm=td();
+  }
+
+  persist(); closeSheet('sh-complete-task');
+  const names=selectedArr.map(pid=>{ const p=persons.find(x=>x.id===pid); return p?p.name:pid; }).join(', ');
+  toast(`✅ ${task.emoji} erledigt von ${names} (+${pts}Pkt)`);
+}
+
+function fireKachelM(tile){
+  // Find matching once-task or create
+  const existing=onceTasks.find(t=>t.name===tile.name&&!t.done);
+  if(existing){ toast(`📌 "${tile.name}" bereits in der Liste`,'warn'); return; }
+  onceTasks.push({ id:uid(), name:tile.name, emoji:tile.emoji, faellig:td(), punkte:tile.punkte, done:false, doneVon:null, doneAm:null });
+  persist();
+  toast(`📌 ${tile.emoji} ${tile.name} hinzugefügt`);
+}
+
+/* ── ERFASSEN FLOW ────────────────────────────────── */
+function handleErfSearch(val){
+  const res=document.getElementById('erf-search-results');
+  const q=val.trim().toLowerCase();
+  if(!q){ res.classList.remove('vis'); return; }
+  const matches=Object.values(productMap).filter(p=>p.name.toLowerCase().includes(q));
+  res.innerHTML='';
+  if(!matches.length){ res.innerHTML='<div class="search-res" style="color:var(--tx2);font-size:12px">Kein Treffer – Barcode scannen oder neu anlegen</div>'; res.classList.add('vis'); return; }
+  matches.forEach(p=>{
+    const d=document.createElement('div'); d.className='search-res';
+    d.innerHTML=`<span style="font-size:22px">${p.emoji}</span><div><div style="font-weight:600">${p.name}</div><div style="font-size:11px;color:var(--tx2)">📍 ${p.location}</div></div>`;
+    d.onclick=()=>{ closeSheet('sh-erfassen'); openExistProdM(p.barcode); };
+    res.appendChild(d);
+  });
+  res.classList.add('vis');
+}
+
+function processErfBarcode(){
+  const code=document.getElementById('erf-barcode').value.trim();
+  if(!code){ toast('Bitte Code eingeben','warn'); return; }
+  closeSheet('sh-erfassen');
+  if(productMap[code]) openExistProdM(code);
+  else openNewProdM(code);
+}
+
+function openNewProdM(code){
+  document.getElementById('np-m-barcode').value=code||'';
+  document.getElementById('np-m-title').textContent = code ? `🆕 Neues Produkt (${code})` : '🆕 Neues Produkt';
+  document.getElementById('np-m-emoji').value='🛒';
+  document.getElementById('np-m-name').value='';
+  document.getElementById('np-m-qty').value=1;
+  document.getElementById('np-m-mhd').value='';
+  setModeM('np','mhd');
+  openSheet('sh-new-prod');
+  setTimeout(()=>document.getElementById('np-m-name').focus(),200);
+}
+
+function openExistProdM(code){
+  const p=productMap[code]; if(!p) return;
+  document.getElementById('ep-m-barcode').value=code;
+  document.getElementById('ep-m-emoji').textContent=p.emoji;
+  document.getElementById('ep-m-name').textContent=p.name;
+  document.getElementById('ep-m-loc').textContent='📍 Standard: '+p.location;
+  document.getElementById('ep-m-title').textContent=p.emoji+' '+p.name+' erfassen';
+  document.getElementById('ep-m-loc-sel').value=p.location;
+  document.getElementById('ep-m-qty').value=1;
+  document.getElementById('ep-m-mhd').value='';
+  setModeM('ep','mhd');
+  // Pre-fill shelf life
+  if(p.defaultShelfLife){
+    document.getElementById('ep-m-shelf').value=p.defaultShelfLife;
+  }
+  openSheet('sh-exist-prod');
+}
+
+function saveNewProdM(){
+  const code=document.getElementById('np-m-barcode').value.trim()||uid();
+  const name=document.getElementById('np-m-name').value.trim();
+  const emoji=document.getElementById('np-m-emoji').value.trim()||'🛒';
+  const loc=document.getElementById('np-m-loc').value;
+  const qty=parseInt(document.getElementById('np-m-qty').value)||1;
+  const {mhd,kaufdatum,shelfLife}=getDateM('np');
+  if(!name){ toast('Bitte Namen eingeben','warn'); return; }
+  productMap[code]={barcode:code, name, emoji, location:loc, defaultShelfLife:shelfLife||null};
+  inventory.push({id:uid(), barcode:code, name, emoji, location:loc, qty, mhd, kaufdatum, shelfLife});
+  persist(); closeSheet('sh-new-prod');
+  toast(`✅ ${emoji} ${name} erfasst`);
+}
+
+function saveExistProdM(){
+  const code=document.getElementById('ep-m-barcode').value;
+  const loc=document.getElementById('ep-m-loc-sel').value;
+  const qty=parseInt(document.getElementById('ep-m-qty').value)||1;
+  const {mhd,kaufdatum,shelfLife}=getDateM('ep');
+  const p=productMap[code]; if(!p) return;
+  if(shelfLife&&!p.defaultShelfLife) p.defaultShelfLife=shelfLife;
+  inventory.push({id:uid(), barcode:code, name:p.name, emoji:p.emoji, location:loc, qty, mhd, kaufdatum, shelfLife});
+  persist(); closeSheet('sh-exist-prod');
+  toast(`✅ ${p.emoji} ${p.name} erfasst`);
+}
+
+/* ── DATE MODE HELPERS ────────────────────────────── */
+function setModeM(prefix, mode){
+  const isMhd=mode==='mhd';
+  document.getElementById(`${prefix}-m-mode-mhd`).classList.toggle('active',isMhd);
+  document.getElementById(`${prefix}-m-mode-kauf`).classList.toggle('active',!isMhd);
+  document.getElementById(`${prefix}-m-mhd-grp`).style.display=isMhd?'':'none';
+  document.getElementById(`${prefix}-m-kauf-grp`).style.display=isMhd?'none':'';
+}
+
+// sci (shop check-in) special – uses different id pattern
+function setModeM(prefix, mode){
+  const isMhd=mode==='mhd';
+  const mhdBtn=document.getElementById(`${prefix}-mode-mhd`)||document.getElementById(`${prefix}-m-mode-mhd`);
+  const kaufBtn=document.getElementById(`${prefix}-mode-kauf`)||document.getElementById(`${prefix}-m-mode-kauf`);
+  const mhdGrp=document.getElementById(`${prefix}-mhd-grp`)||document.getElementById(`${prefix}-m-mhd-grp`);
+  const kaufGrp=document.getElementById(`${prefix}-kauf-grp`)||document.getElementById(`${prefix}-m-kauf-grp`);
+  if(mhdBtn)  mhdBtn.classList.toggle('active',isMhd);
+  if(kaufBtn) kaufBtn.classList.toggle('active',!isMhd);
+  if(mhdGrp)  mhdGrp.style.display=isMhd?'':'none';
+  if(kaufGrp) kaufGrp.style.display=isMhd?'none':'';
+}
+
+function calcMhdM(prefix){
+  const kaufEl  = document.getElementById(`${prefix}-m-kaufdate`)||document.getElementById(`${prefix}-kaufdate`);
+  const shelfEl = document.getElementById(`${prefix}-m-shelf`)||document.getElementById(`${prefix}-shelf`);
+  const calcEl  = document.getElementById(`${prefix}-m-calc`)||document.getElementById(`${prefix}-calc`);
+  if(!kaufEl||!shelfEl||!calcEl) return;
+  const kauf=kaufEl.value; const days=parseInt(shelfEl.value)||0;
+  if(!kauf||!days){ calcEl.textContent=''; return; }
+  const d=new Date(kauf+'T00:00:00'); d.setDate(d.getDate()+days);
+  calcEl.textContent='→ Berechnetes MHD: '+fmtD(d.toISOString().split('T')[0]);
+}
+
+function getDateM(prefix){
+  const mhdBtn=document.getElementById(`${prefix}-m-mode-mhd`)||document.getElementById(`${prefix}-mode-mhd`);
+  const isMhd=mhdBtn && mhdBtn.classList.contains('active');
+  if(isMhd){
+    const mhd=(document.getElementById(`${prefix}-m-mhd`)||document.getElementById(`${prefix}-mhd`)).value||null;
+    return {mhd, kaufdatum:null, shelfLife:null};
+  } else {
+    const kauf=(document.getElementById(`${prefix}-m-kaufdate`)||document.getElementById(`${prefix}-kaufdate`)).value||null;
+    const shelf=parseInt((document.getElementById(`${prefix}-m-shelf`)||document.getElementById(`${prefix}-shelf`)).value)||null;
+    let mhd=null;
+    if(kauf&&shelf){ const d=new Date(kauf+'T00:00:00'); d.setDate(d.getDate()+shelf); mhd=d.toISOString().split('T')[0]; }
+    return {mhd, kaufdatum:kauf, shelfLife:shelf};
+  }
+}
+
+/* ── SYNC SHEET ───────────────────────────────────── */
+function openSyncSheet(){
+  document.getElementById('sync-url-input').value=cloudSyncUrl||'';
+  openSheet('sh-sync');
+}
+
+function saveSyncUrl(){
+  cloudSyncUrl=document.getElementById('sync-url-input').value.trim();
+  sv('cloudSyncUrl',cloudSyncUrl);
+  closeSheet('sh-sync');
+  if(cloudSyncUrl) loadFromCloud();
+  else setSyncUI('offline');
+}
+
+function doManualSync(){
+  if(!cloudSyncUrl){ toast('Keine Sync-URL konfiguriert','warn'); return; }
+  loadFromCloud(true);
+}
+
+/* ── RENDER ALL ───────────────────────────────────── */
+function renderAll(){
+  renderBestand();
+  renderEinkauf();
+  renderAufgaben();
+}
+
+/* ── INIT & AUTO-SYNC LISTENERS ───────────────────── */
+// Auto-repair batches with missing names using catalog products
+inventory.forEach(b => {
+  if((!b.name || !b.name.trim()) && b.barcode && productMap[b.barcode]){
+    b.name = productMap[b.barcode].name;
+    b.emoji = b.emoji || productMap[b.barcode].emoji;
+  }
+});
+
+setSyncUI(cloudSyncUrl?'online':'offline');
+renderAll();
+
+// Auto-sync on open if URL set
+if(cloudSyncUrl){
+  loadFromCloud(false).catch(()=>{});
+}
+
+// 1. Instant sync when switching back to app / unlocking phone
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && cloudSyncUrl && !_isLiveSyncing) {
+    loadFromCloud(false).catch(()=>{});
+  }
+});
+window.addEventListener('focus', () => {
+  if (cloudSyncUrl && !_isLiveSyncing) {
+    loadFromCloud(false).catch(()=>{});
+  }
+});
+
+// 2. Poll every 18 seconds (only when app is actively open on screen)
+setInterval(()=>{
+  if(document.visibilityState === 'visible' && cloudSyncUrl && !_isLiveSyncing){
+    loadFromCloud(false).catch(()=>{});
+  }
+}, 18000);
+
+// 3. Listen for localStorage changes (same-device, other tab)
+window.addEventListener('storage', e=>{
+  if(['inventory','shopping','recurringTasks','onceTasks','points','completionLog','pointAdjustments','productMap','quickTiles','erfassenTiles','deletedIds'].includes(e.key)){
+    inventory        = ld('inventory',        []);
+    shopping         = ld('shopping',         []);
+    recurringTasks   = ld('recurringTasks',   []);
+    onceTasks        = ld('onceTasks',        []);
+    completionLog    = ld('completionLog',    []);
+    pointAdjustments = ld('pointAdjustments', []);
+    productMap       = ld('productMap',       {});
+    quickTiles       = ld('quickTiles',       []);
+    erfassenTiles    = ld('erfassenTiles',    []);
+    deletedIds       = ld('deletedIds',       {});
+    points           = ld('points',           {});
+    renderAll();
+  }
+});
+
+// 4. Register Service Worker for PWA / WebAPK support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg error:', err));
+  });
+}
+</script>
+</body>
+</html>
