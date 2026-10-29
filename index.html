@@ -312,14 +312,14 @@
   </div>
 
   <!-- Live Sync Badge -->
-  <div class="sync-status-badge" id="cloud-sync-status-btn" onclick="openCloudSyncModal()" title="Klicke für Google Sheets Sync Einstellungen">
+  <div class="sync-status-badge" id="cloud-sync-status-btn" onclick="openCloudSyncModal()" title="Google Sheets Sync Status" style="padding:6px 10px;gap:6px;display:inline-flex;align-items:center">
+    <span style="font-size:14px;line-height:1">☁️</span>
     <span class="sync-dot" id="sync-dot-icon"></span>
-    <span id="sync-status-text">☁️ Sync: Offline</span>
   </div>
 
   <!-- Mode Switcher -->
-  <button class="btn btn-sm btn-secondary" onclick="switchToMobile()" title="In den Smartphone / Handy-Modus wechseln" style="border-color:var(--acc);color:var(--acc2);margin-left:4px">
-    📱 Handy-Modus
+  <button class="btn btn-sm btn-secondary" onclick="switchToMobile()" title="In den Handy-Modus wechseln" style="border-color:var(--acc);color:var(--acc2);padding:6px 10px;font-size:15px;line-height:1;margin-left:4px">
+    📱
   </button>
 
   <div class="tb-spacer"></div>
@@ -1081,23 +1081,23 @@ let _localModifiedTime  = ld('_localModifiedTime', Date.now());
 let _lastSyncTime       = ld('_lastSyncTime', 0);
 
 function updateSyncStatusUI(status){
-  const textEl = document.getElementById('sync-status-text');
+  const btnEl = document.getElementById('cloud-sync-status-btn');
   const dotEl  = document.getElementById('sync-dot-icon');
-  if(!textEl || !dotEl) return;
+  if(!dotEl) return;
 
   dotEl.className = 'sync-dot';
 
   if(!cloudSyncUrl){
-    textEl.textContent = '☁️ Sync: Offline';
+    if(btnEl) btnEl.title = 'Google Sheets Sync: Offline (Klicken zum Einrichten)';
     dotEl.className = 'sync-dot';
   } else if(status === 'syncing'){
-    textEl.textContent = '☁️ Sync…';
+    if(btnEl) btnEl.title = 'Google Sheets: Synchronisiere…';
     dotEl.className = 'sync-dot syncing';
   } else if(status === 'online'){
-    textEl.textContent = '☁️ Gespeichert';
+    if(btnEl) btnEl.title = 'Google Sheets: Gespeichert & Synchronisiert';
     dotEl.className = 'sync-dot online';
   } else if(status === 'error'){
-    textEl.textContent = '⚠️ Sync-Fehler';
+    if(btnEl) btnEl.title = 'Google Sheets: Sync-Fehler (Klicken zum Prüfen)';
     dotEl.className = 'sync-dot error';
   }
 }

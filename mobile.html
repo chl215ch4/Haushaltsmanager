@@ -304,6 +304,27 @@
     padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.6;
   }
   .sync-banner a{color:var(--acc2);text-decoration:none}
+
+  /* ── DASHBOARD STYLES ────────────────────────── */
+  .dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .stat-card{
+    background:var(--surf);border:1px solid var(--brd);border-radius:var(--rs);
+    padding:10px 8px;text-align:center;cursor:pointer;transition:border-color var(--tr);
+  }
+  .stat-card:hover{border-color:var(--acc)}
+  .stat-val{font-size:20px;font-weight:800;color:var(--tx)}
+  .stat-lb{font-size:10px;font-weight:600;color:var(--tx2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .rank-item{
+    display:flex;align-items:center;gap:12px;padding:10px 14px;
+    background:var(--surf);border:1px solid var(--brd);border-radius:var(--rs);margin-bottom:8px;
+  }
+  .rank-pos{font-size:18px;width:24px;text-align:center;font-weight:800;flex-shrink:0}
+  .rank-info{flex:1;min-width:0}
+  .rank-name{font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+  .rank-pts{font-size:13px;font-weight:800;color:var(--acc2)}
+  .rank-bar-bg{height:6px;background:var(--surf2);border-radius:3px;overflow:hidden;margin-top:5px}
+  .rank-bar-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--grn));border-radius:3px;transition:width .4s ease}
 </style>
 </head>
 <body>
@@ -312,12 +333,12 @@
 <div class="topbar">
   <div class="topbar-title">🏠 Haushalt</div>
   <div style="display:flex;align-items:center;gap:8px">
-    <button onclick="switchToTablet()" title="In den Tablet / Desktop-Modus wechseln" style="background:var(--surf2);color:var(--tx);border:1px solid var(--brd);padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
-      🖥️ Tablet-Modus
+    <button onclick="switchToTablet()" title="In den Tablet-Modus wechseln" style="background:var(--surf2);color:var(--tx);border:1px solid var(--brd);padding:6px 9px;border-radius:14px;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1">
+      🖥️
     </button>
-    <div class="sync-pill" onclick="openSyncSheet()">
+    <div class="sync-pill" id="sync-pill" onclick="openSyncSheet()" title="Google Sheets Sync Status" style="padding:6px 9px;gap:5px;display:inline-flex;align-items:center">
+      <span style="font-size:13px;line-height:1">☁️</span>
       <div class="sync-dot" id="sync-dot"></div>
-      <span id="sync-text">Offline</span>
     </div>
   </div>
 </div>
@@ -325,8 +346,57 @@
 <!-- ── CONTENT ───────────────────────────────────── -->
 <div class="content" id="content">
 
-  <!-- ══ TAB: BESTAND ══════════════════════════════ -->
-  <div class="tab-pane active" id="tab-bestand">
+  <!-- ══ TAB 1: DASHBOARD ═══════════════════════════ -->
+  <div class="tab-pane active" id="tab-dashboard">
+    <!-- 3 Quick Stat Cards -->
+    <div class="dash-stats">
+      <div class="stat-card" onclick="switchTab('aufgaben')">
+        <div class="stat-val" id="stat-tasks-due">0</div>
+        <div class="stat-lb">📋 Aufgaben heute</div>
+      </div>
+      <div class="stat-card" onclick="switchTab('bestand')">
+        <div class="stat-val" id="stat-exp-soon">0</div>
+        <div class="stat-lb">⏳ Bald ablaufend</div>
+      </div>
+      <div class="stat-card" onclick="switchTab('einkauf')">
+        <div class="stat-val" id="stat-shop-open">0</div>
+        <div class="stat-lb">🛒 Auf Einkaufsliste</div>
+      </div>
+    </div>
+
+    <!-- 1. Noch zu erledigen (Aufgaben für heute) -->
+    <div class="sec-hdr">
+      <span class="sec-title">📋 Noch zu erledigen (Heute)</span>
+      <span class="sec-badge" id="dash-due-badge">0 fällig</span>
+    </div>
+    <div id="dash-due-tasks"></div>
+
+    <!-- 2. Demnächst ablaufende Artikel aus dem Bestand -->
+    <div class="sec-hdr" style="margin-top:16px">
+      <span class="sec-title">⏳ Demnächst ablaufend</span>
+      <span class="sec-badge" id="dash-exp-badge"></span>
+    </div>
+    <div id="dash-expiry-list"></div>
+
+    <!-- 3. Punkte Ranking -->
+    <div class="sec-hdr" style="margin-top:16px">
+      <span class="sec-title">🏆 Punkte-Ranking (<span id="dash-rank-month"></span>)</span>
+    </div>
+    <div id="dash-ranking-list"></div>
+    <div style="height:12px"></div>
+  </div>
+
+  <!-- ══ TAB 2: EINKAUF ═════════════════════════════ -->
+  <div class="tab-pane" id="tab-einkauf">
+    <div class="sec-hdr">
+      <span class="sec-title">Einkaufsliste</span>
+      <span class="sec-badge" id="shop-count"></span>
+    </div>
+    <div id="shopping-list-m"></div>
+  </div>
+
+  <!-- ══ TAB 3: BESTAND ═════════════════════════════ -->
+  <div class="tab-pane" id="tab-bestand">
     <div class="filter-bar" id="loc-filter-bar">
       <div class="filter-chip active" data-loc="all" onclick="setLocFilter(this,'all')">Alle</div>
       <div class="filter-chip" data-loc="Kühlschrank"    onclick="setLocFilter(this,'Kühlschrank')">🧊 Kühlschrank</div>
@@ -340,22 +410,7 @@
     <div style="height:8px"></div>
   </div>
 
-  <!-- ══ TAB: EINKAUF ══════════════════════════════ -->
-  <div class="tab-pane" id="tab-einkauf">
-    <div class="sec-hdr">
-      <span class="sec-title">Einkaufsliste</span>
-      <span class="sec-badge" id="shop-count"></span>
-    </div>
-    <div id="shopping-list-m"></div>
-
-    <!-- MHD expiry section -->
-    <div class="sec-hdr" style="margin-top:6px">
-      <span class="sec-title">⏱️ Bald ablaufend</span>
-    </div>
-    <div id="expiry-list-m"></div>
-  </div>
-
-  <!-- ══ TAB: AUFGABEN ══════════════════════════════ -->
+  <!-- ══ TAB 4: AUFGABEN ════════════════════════════ -->
   <div class="tab-pane" id="tab-aufgaben">
     <!-- Quick Kacheln -->
     <div class="sec-hdr">
@@ -391,15 +446,20 @@
 
 <!-- ── BOTTOM NAV ────────────────────────────────── -->
 <nav class="bottom-nav">
-  <button class="nav-btn active" id="nav-bestand" onclick="switchTab('bestand')">
-    <span class="nav-ic">📦</span>
-    <span class="nav-lb">Bestand</span>
-    <span class="nav-badge" id="badge-bestand" style="display:none"></span>
+  <button class="nav-btn active" id="nav-dashboard" onclick="switchTab('dashboard')">
+    <span class="nav-ic">⚡</span>
+    <span class="nav-lb">Dashboard</span>
+    <span class="nav-badge" id="badge-dashboard" style="display:none"></span>
   </button>
   <button class="nav-btn" id="nav-einkauf" onclick="switchTab('einkauf')">
     <span class="nav-ic">🛒</span>
     <span class="nav-lb">Einkauf</span>
     <span class="nav-badge" id="badge-einkauf" style="display:none"></span>
+  </button>
+  <button class="nav-btn" id="nav-bestand" onclick="switchTab('bestand')">
+    <span class="nav-ic">📦</span>
+    <span class="nav-lb">Bestand</span>
+    <span class="nav-badge" id="badge-bestand" style="display:none"></span>
   </button>
   <button class="nav-btn" id="nav-aufgaben" onclick="switchTab('aufgaben')">
     <span class="nav-ic">✅</span>
@@ -1031,9 +1091,10 @@ function loadDbObj(data){
 /* ── CLOUD SYNC ───────────────────────────────────── */
 function setSyncUI(s){
   const dot  = document.getElementById('sync-dot');
-  const text = document.getElementById('sync-text');
-  dot.className = 'sync-dot' + (s==='online'?' online':s==='syncing'?' syncing':s==='error'?' error':'');
-  text.textContent = s==='online'?'Gespeichert':s==='syncing'?'Speichert…':s==='error'?'Fehler':'Offline';
+  const pill = document.getElementById('sync-pill');
+  if(dot) dot.className = 'sync-dot' + (s==='online'?' online':s==='syncing'?' syncing':s==='error'?' error':'');
+  const msg = s==='online'?'Google Sheets: Gespeichert':s==='syncing'?'Google Sheets: Speichert…':s==='error'?'Google Sheets: Sync-Fehler':'Google Sheets: Offline';
+  if(pill) pill.title = msg;
 }
 
 function cleanUrl(u){
@@ -1140,22 +1201,28 @@ async function loadFromCloud(isManual = false){
 }
 
 /* ── TAB SWITCHING ────────────────────────────────── */
-let _currentTab = 'bestand';
+let _currentTab = 'dashboard';
 function switchTab(name){
   _currentTab = name;
   document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  document.getElementById('nav-'+name).classList.add('active');
+  const pane = document.getElementById('tab-'+name);
+  const nav  = document.getElementById('nav-'+name);
+  if(pane) pane.classList.add('active');
+  if(nav)  nav.classList.add('active');
+
   // Update FAB icon
   const fab = document.getElementById('fab-btn');
-  fab.textContent = name==='einkauf' ? '+' : name==='aufgaben' ? '✅' : '+';
-  fab.title = name==='einkauf' ? 'Zur Einkaufsliste hinzufügen' : name==='aufgaben' ? 'Aufgabe hinzufügen' : 'Produkt erfassen';
+  if(fab){
+    fab.textContent = name==='einkauf' ? '+' : name==='aufgaben' ? '✅' : '+';
+    fab.title = name==='einkauf' ? 'Zur Einkaufsliste hinzufügen' : name==='aufgaben' ? 'Aufgabe hinzufügen' : 'Produkt erfassen';
+  }
   document.getElementById('content').scrollTop = 0;
 }
 
 function fabAction(){
-  if(_currentTab==='bestand') openSheet('sh-erfassen');
+  if(_currentTab==='dashboard') openSheet('sh-erfassen');
+  else if(_currentTab==='bestand') openSheet('sh-erfassen');
   else if(_currentTab==='einkauf') openSheet('sh-add-shop');
   else if(_currentTab==='aufgaben') toast('Aufgaben werden in der Desktop-App angelegt','warn');
 }
@@ -1332,9 +1399,6 @@ function renderEinkauf(){
     `;
     c.appendChild(el);
   });
-
-  // Expiry list
-  renderExpiryM();
 }
 
 function toggleShopM(id){
@@ -1425,35 +1489,158 @@ function saveAddShop(){
   toast(`🛒 ${name} hinzugefügt`);
 }
 
-/* ── RENDER: ABLAUFENDE ───────────────────────────── */
-function renderExpiryM(){
-  const c = document.getElementById('expiry-list-m');
-  const relevant = inventory.filter(i=>i.qty>0&&i.mhd&&daysUntil(i.mhd)<=14)
-                             .sort((a,b)=>a.mhd.localeCompare(b.mhd));
-  c.innerHTML='';
-  if(!relevant.length){
-    c.innerHTML='<div class="empty" style="padding:20px"><div class="empty-ic" style="font-size:28px">✅</div><div class="empty-tx">Alles frisch</div></div>';
-    return;
+/* ── RENDER: DASHBOARD ────────────────────────────── */
+const MDE_SHORT = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+function renderDashboard(){
+  const today = td();
+
+  // 1. Tasks due today (or overdue):
+  const recDueToday = recurringTasks.filter(t => t.lastCompleted !== today && t.naechste <= today);
+  const onceDueToday = onceTasks.filter(t => !t.done && (!t.faellig || t.faellig <= today));
+  const allDueToday = [
+    ...recDueToday.map(t => ({ ...t, taskType:'recurring' })),
+    ...onceDueToday.map(t => ({ ...t, taskType:'once' }))
+  ];
+
+  // 2. Expiring items (MHD <= 7 days or overdue)
+  const expItems = inventory.filter(i => i.qty > 0 && i.mhd && daysUntil(i.mhd) <= 7)
+                            .sort((a,b) => (a.mhd||'').localeCompare(b.mhd||''));
+
+  // 3. Open shopping items
+  const shopPending = shopping.filter(s => !s.done);
+
+  // Update quick stat counters
+  const statTasks = document.getElementById('stat-tasks-due');
+  const statExp   = document.getElementById('stat-exp-soon');
+  const statShop  = document.getElementById('stat-shop-open');
+  if(statTasks) statTasks.textContent = allDueToday.length;
+  if(statExp)   statExp.textContent = expItems.length;
+  if(statShop)  statShop.textContent = shopPending.length;
+
+  // Badges on navigation
+  const dashBadge = document.getElementById('badge-dashboard');
+  if(dashBadge){
+    const totalAlerts = allDueToday.length + expItems.length;
+    dashBadge.textContent = totalAlerts || '';
+    dashBadge.style.display = totalAlerts ? 'flex' : 'none';
   }
-  relevant.forEach(it=>{
-    const d=daysUntil(it.mhd);
-    let cls='b-grn', lbl=`${d}d`;
-    if(d<0){ cls='b-red'; lbl=`${Math.abs(d)}d abgel.`; }
-    else if(d===0){ cls='b-red'; lbl='Heute!'; }
-    else if(d<=3){ cls='b-red'; lbl=`${d}d`; }
-    else if(d<=7){ cls='b-yel'; lbl=`${d}d`; }
-    const el=document.createElement('div');
-    el.className='shop-item';
-    el.innerHTML=`
-      <span style="font-size:22px">${it.emoji}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700">${it.name}</div>
-        <div style="font-size:11px;color:var(--tx2)">📍 ${it.location} · ${it.qty}x</div>
-      </div>
-      <span class="badge ${cls}">${lbl}</span>
-    `;
-    c.appendChild(el);
-  });
+
+  // A) Render "Noch zu erledigen (Aufgaben für heute)"
+  const dueBadge = document.getElementById('dash-due-badge');
+  if(dueBadge) dueBadge.textContent = allDueToday.length ? allDueToday.length + ' fällig' : 'Alles erledigt ✓';
+  const dueList = document.getElementById('dash-due-tasks');
+  if(dueList){
+    dueList.innerHTML = '';
+    if(!allDueToday.length){
+      dueList.innerHTML = `
+        <div class="empty" style="padding:16px 12px;background:var(--surf);border:1px solid var(--brd);border-radius:var(--rs)">
+          <div class="empty-ic" style="font-size:26px">🎉</div>
+          <div class="empty-tx" style="font-weight:600">Alles erledigt für heute!</div>
+        </div>
+      `;
+    } else {
+      allDueToday.forEach(t => {
+        const isOverdue = (t.naechste && t.naechste < today) || (t.faellig && t.faellig < today);
+        const el = document.createElement('div');
+        el.className = 'task-item' + (isOverdue ? ' overdue' : '');
+        el.style.cursor = 'pointer';
+        el.innerHTML = `
+          <span class="task-em">${t.emoji}</span>
+          <div class="task-info">
+            <div class="task-name">${t.name}</div>
+            <div class="task-sub">${t.taskType === 'recurring' ? (RHYTHM_LBL[t.rhythm]||'Wiederkehrend') : 'Einmalig'} · ${isOverdue ? '⚠️ Überfällig' : 'Heute fällig'}</div>
+          </div>
+          <span class="task-pts">+${t.punkte}Pkt</span>
+        `;
+        el.onclick = () => openCompleteM(t.id, t.taskType);
+        dueList.appendChild(el);
+      });
+    }
+  }
+
+  // B) Render "Demnächst ablaufende Artikel aus dem Bestand"
+  const expBadge = document.getElementById('dash-exp-badge');
+  if(expBadge) expBadge.textContent = expItems.length ? expItems.length + ' bald fällig' : 'Alles frisch ✓';
+  const expList = document.getElementById('dash-expiry-list');
+  if(expList){
+    expList.innerHTML = '';
+    if(!expItems.length){
+      expList.innerHTML = `
+        <div class="empty" style="padding:16px 12px;background:var(--surf);border:1px solid var(--brd);border-radius:var(--rs)">
+          <div class="empty-ic" style="font-size:26px">✅</div>
+          <div class="empty-tx">Keine ablaufenden Vorräte in den nächsten 7 Tagen</div>
+        </div>
+      `;
+    } else {
+      expItems.forEach(it => {
+        const d = daysUntil(it.mhd);
+        let cls = 'b-grn', lbl = `${d}d`;
+        if(d < 0){ cls = 'b-red'; lbl = `${Math.abs(d)}d abgel.`; }
+        else if(d === 0){ cls = 'b-red'; lbl = 'Heute!'; }
+        else if(d <= 3){ cls = 'b-red'; lbl = `${d}d`; }
+        else if(d <= 7){ cls = 'b-yel'; lbl = `${d}d`; }
+
+        const el = document.createElement('div');
+        el.className = 'shop-item';
+        el.innerHTML = `
+          <span style="font-size:22px">${it.emoji}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700">${it.name}</div>
+            <div style="font-size:11px;color:var(--tx2)">📍 ${it.location} · ${it.qty}x · MHD: ${fmtD(it.mhd)}</div>
+          </div>
+          <span class="badge ${cls}" style="margin-right:4px">${lbl}</span>
+          <button class="btn btn-sm btn-secondary" onclick="entnehmenM('${it.id}',event)" title="1 Stück entnehmen">−1</button>
+        `;
+        expList.appendChild(el);
+      });
+    }
+  }
+
+  // C) Render "Punkte Ranking"
+  const curMon = mk();
+  const [y, m] = curMon.split('-');
+  const monthName = MDE_SHORT[+m - 1] + ' ' + y;
+  const monthEl = document.getElementById('dash-rank-month');
+  if(monthEl) monthEl.textContent = monthName;
+
+  const rankList = document.getElementById('dash-ranking-list');
+  if(rankList){
+    rankList.innerHTML = '';
+    // Sort persons by current month points descending
+    const sortedPersons = [...persons].map(p => ({
+      ...p,
+      score: points[p.id] || 0
+    })).sort((a,b) => b.score - a.score);
+
+    const maxScore = Math.max(...sortedPersons.map(p => p.score), 1);
+
+    sortedPersons.forEach((p, idx) => {
+      const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+      const pct = Math.max(8, Math.round((p.score / maxScore) * 100));
+
+      const el = document.createElement('div');
+      el.className = 'rank-item';
+      el.innerHTML = `
+        <div class="rank-pos">${medal}</div>
+        <div style="font-size:24px">${p.emoji}</div>
+        <div class="rank-info">
+          <div class="rank-name">
+            <span>${p.name}</span>
+            <span class="rank-pts">${p.score} Pkt.</span>
+          </div>
+          <div class="rank-bar-bg">
+            <div class="rank-bar-fill" style="width:${p.score > 0 ? pct : 0}%"></div>
+          </div>
+        </div>
+      `;
+      rankList.appendChild(el);
+    });
+  }
+}
+
+function renderExpiryM(){
+  renderDashboard();
 }
 
 /* ── RENDER: AUFGABEN ─────────────────────────────── */
@@ -1801,6 +1988,7 @@ function doManualSync(){
 
 /* ── RENDER ALL ───────────────────────────────────── */
 function renderAll(){
+  renderDashboard();
   renderBestand();
   renderEinkauf();
   renderAufgaben();
